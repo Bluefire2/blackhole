@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Black Hole Sim</title>
+    <style>
+      html, body {
+        margin: 0;
+        padding: 0;
+        background: black;
+        color: #ccc;
+        font-family: sans-serif;
+        height: 100%;
+        overflow: hidden;
+      }
+      #gpu-canvas {
+        width: 100vw;
+        height: 100vh;
+        display: block;
+      }
+      #overlay {
+        position: fixed;
+        left: 0.5rem;
+        top: 0.5rem;
+        background: rgba(0,0,0,0.5);
+        color: #0f0;
+        font-size: 12px;
+        font-family: monospace;
+        padding: 0.5rem 0.75rem;
+        border-radius: 4px;
+      }
+    </style>
+  </head>
+  <body>
+    <canvas id="gpu-canvas"></canvas>
+    <div id="overlay">starting…</div>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
