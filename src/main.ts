@@ -8,7 +8,7 @@ const canvas = document.getElementById("gpu-canvas") as HTMLCanvasElement;
 
 // --- Mouse-driven camera state ---
 let yaw = 0;          // radians, left/right
-let pitch = 0;        // radians, up/down (clamped)
+let pitch = 0.2;        // radians, up/down (clamped)
 let cameraRadius = 14.0; // Start outside the disk (R_OUTER is 12.0)
 let isDragging = false;
 let lastX = 0, lastY = 0;
