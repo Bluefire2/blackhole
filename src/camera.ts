@@ -21,19 +21,19 @@ export function createCamera(canvas: HTMLCanvasElement): CameraState {
   let lastX = 0, lastY = 0;
 
   // Drag to rotate
-  canvas.addEventListener("mousedown", (e) => {
+  canvas.addEventListener('mousedown', (e) => {
     isDragging = true;
     lastX = e.clientX;
     lastY = e.clientY;
   });
-  
-  window.addEventListener("mouseup", () => { isDragging = false; });
-  
-  window.addEventListener("mousemove", (e) => {
+
+  window.addEventListener('mouseup', () => { isDragging = false; });
+
+  window.addEventListener('mousemove', (e) => {
     if (!isDragging) return;
     const dx = e.clientX - lastX;
     const dy = e.clientY - lastY;
-    lastX = e.clientX; 
+    lastX = e.clientX;
     lastY = e.clientY;
 
     const sens = 0.005;             // rad per pixel
@@ -44,7 +44,7 @@ export function createCamera(canvas: HTMLCanvasElement): CameraState {
   });
 
   // Wheel to zoom Distance (radius)
-  canvas.addEventListener("wheel", (e) => {
+  canvas.addEventListener('wheel', (e) => {
     e.preventDefault();
     camera.radius *= Math.exp(e.deltaY * 0.001);                 // smooth zoom
     camera.radius = clamp(camera.radius, 2.5, 100.0);             // Limits: close to horizon -> far away

@@ -16,18 +16,18 @@ export interface WebGPUResources {
 
 export async function initWebGPU(
   canvas: HTMLCanvasElement,
-  overlay: Overlay
+  overlay: Overlay,
 ): Promise<WebGPUResources> {
-  if (!("gpu" in navigator)) {
-    overlay.setError("WebGPU not supported in this browser.");
-    throw new Error("WebGPU not supported in this browser.");
+  if (!('gpu' in navigator)) {
+    overlay.setError('WebGPU not supported in this browser.');
+    throw new Error('WebGPU not supported in this browser.');
   }
 
   // 1. Get adapter (physical-ish GPU)
   const adapter = await (navigator as any).gpu.requestAdapter();
   if (!adapter) {
-    overlay.setError("No GPU adapter found.");
-    throw new Error("No GPU adapter found.");
+    overlay.setError('No GPU adapter found.');
+    throw new Error('No GPU adapter found.');
   }
 
   // 2. Get logical device
@@ -68,10 +68,10 @@ export async function initWebGPU(
   });
 
   // 3. Get WebGPU context from canvas
-  const context = canvas.getContext("webgpu") as GPUCanvasContext;
+  const context = canvas.getContext('webgpu') as GPUCanvasContext;
   if (!context) {
-    overlay.setError("Could not get webgpu context.");
-    throw new Error("Could not get webgpu context.");
+    overlay.setError('Could not get webgpu context.');
+    throw new Error('Could not get webgpu context.');
   }
 
   // Pick a texture format the browser likes
@@ -79,7 +79,7 @@ export async function initWebGPU(
   context.configure({
     device,
     format: canvasFormat,
-    alphaMode: "opaque",
+    alphaMode: 'opaque',
   });
 
   return {
@@ -96,8 +96,8 @@ export function createPipeline(
   device: GPUDevice,
   pipelineLayout: GPUPipelineLayout,
   canvasFormat: GPUTextureFormat,
-  width: number,
-  height: number
+  _width: number,
+  _height: number,
 ): GPURenderPipeline {
   const sizedShaderModule = device.createShaderModule({
     code: shaderCode,
@@ -107,15 +107,15 @@ export function createPipeline(
     layout: pipelineLayout,
     vertex: {
       module: sizedShaderModule,
-      entryPoint: "vs_main",
+      entryPoint: 'vs_main',
     },
     fragment: {
       module: sizedShaderModule,
-      entryPoint: "fs_main",
+      entryPoint: 'fs_main',
       targets: [{ format: canvasFormat }],
     },
     primitive: {
-      topology: "triangle-list",
+      topology: 'triangle-list',
     },
   });
 }

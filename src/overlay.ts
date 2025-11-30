@@ -3,7 +3,7 @@
 export class Overlay {
   private element: HTMLDivElement;
 
-  constructor(elementId: string = "overlay") {
+  constructor(elementId: string = 'overlay') {
     const el = document.getElementById(elementId);
     if (!el) {
       throw new Error(`Overlay element with id "${elementId}" not found`);

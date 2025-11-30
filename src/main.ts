@@ -7,15 +7,15 @@ import { startRenderLoop } from './renderer';
 import { Overlay } from './overlay';
 
 async function main() {
-  const canvas = document.getElementById("gpu-canvas") as HTMLCanvasElement;
+  const canvas = document.getElementById('gpu-canvas') as HTMLCanvasElement;
 
   if (!canvas) {
-    throw new Error("gpu-canvas not found");
+    throw new Error('gpu-canvas not found');
   }
 
   // Create overlay manager
   const overlay = new Overlay();
-  overlay.setText("Initializing...");
+  overlay.setText('Initializing...');
 
   // Create camera and set up controls
   const camera = createCamera(canvas);
