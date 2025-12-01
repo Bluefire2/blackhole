@@ -349,7 +349,9 @@ fn fs_main(@builtin(position) fragCoord : vec4f) -> @location(0) vec4f {
     dir = nextDir;
 
     // Escape condition
-    if (r > 30.0) {
+    // Use a radius comfortably larger than the maximum camera radius (camera is clamped to 100.0).
+    // This ensures we still integrate geodesics when the observer is far away.
+    if (r > 200.0) {
         break;
     }
   }
