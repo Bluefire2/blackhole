@@ -2,7 +2,7 @@ struct VSOut {
   @builtin(position) position : vec4f
 };
 
-const MAX_STEPS : i32 = 200;
+const MAX_STEPS : i32 = 300;
 const RS : f32 = 2.0;       // Schwarzschild radius
 const R_INNER : f32 = 3.0;  // Accretion disk inner radius
 const R_OUTER : f32 = 12.0; // Accretion disk outer radius
@@ -32,10 +32,10 @@ struct Uniforms {
   showDebugCircles : f32,
 
   camFwd     : vec3f,
-  _pad1      : f32,
+  maxSteps   : f32,
 
   camRight   : vec3f,
-  _pad2      : f32,
+  stepScale  : f32,
 
   camUp      : vec3f,
   _pad3      : f32,
@@ -266,7 +266,11 @@ fn fs_main(@builtin(position) fragCoord : vec4f) -> @location(0) vec4f {
   let horizonRad = RS;
 
   // Ray marching loop with RK4 Integration
+  let maxSteps = i32(uniforms.maxSteps);
   for (var i : i32 = 0; i < MAX_STEPS; i = i + 1) {
+    if (i >= maxSteps) {
+      break;
+    }
     let r2 = dot(pos, pos);
     let r  = sqrt(r2);
 
@@ -285,7 +289,7 @@ fn fs_main(@builtin(position) fragCoord : vec4f) -> @location(0) vec4f {
     // When close to disk plane (y≈0), reduce step size dramatically
     let distToPlane = abs(pos.y);
     let planeFactor = smoothstep(0.0, 0.5, distToPlane); // 0 at plane, 1 at y=0.5
-    let dt = baseDt * mix(0.05, 1.0, planeFactor); // 5% step size at plane
+    let dt = baseDt * mix(0.05, 1.0, planeFactor) * uniforms.stepScale; // 5% step size at plane
 
     // 3. RK4 Integration Steps
     // Runge-Kutta 4 is a 4th-order method for solving ODEs.

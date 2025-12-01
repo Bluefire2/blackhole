@@ -3,8 +3,9 @@
 
 import { createCamera } from './camera';
 import { initWebGPU } from './webgpu-setup';
-import { startRenderLoop } from './renderer';
+import { startRenderLoop, setStepScale } from './renderer';
 import { Overlay } from './overlay';
+import { setRenderScale } from './utils';
 
 async function main() {
   const canvas = document.getElementById('gpu-canvas') as HTMLCanvasElement;
@@ -16,6 +17,49 @@ async function main() {
   // Create overlay manager
   const overlay = new Overlay();
   overlay.setText('Initializing...');
+
+  // Hook up performance-related UI sliders if present
+  const renderScaleInput = document.getElementById('render-scale') as HTMLInputElement | null;
+  const renderScaleValue = document.getElementById('render-scale-value') as HTMLSpanElement | null;
+
+  if (renderScaleInput && renderScaleValue) {
+    const applyRenderScale = (value: number) => {
+      if (Number.isFinite(value)) {
+        setRenderScale(value);
+        renderScaleValue.textContent = `${Math.round(value * 100)}%`;
+      }
+    };
+
+    const initial = Number(renderScaleInput.value || '1');
+    applyRenderScale(initial);
+
+    renderScaleInput.addEventListener('input', (e) => {
+      const target = e.target as HTMLInputElement;
+      const v = Number(target.value);
+      applyRenderScale(v);
+    });
+  }
+
+  const stepScaleInput = document.getElementById('step-scale') as HTMLInputElement | null;
+  const stepScaleValue = document.getElementById('step-scale-value') as HTMLSpanElement | null;
+
+  if (stepScaleInput && stepScaleValue) {
+    const applyStepScale = (value: number) => {
+      if (Number.isFinite(value)) {
+        setStepScale(value);
+        stepScaleValue.textContent = `${value.toFixed(1)}×`;
+      }
+    };
+
+    const initial = Number(stepScaleInput.value || '1');
+    applyStepScale(initial);
+
+    stepScaleInput.addEventListener('input', (e) => {
+      const target = e.target as HTMLInputElement;
+      const v = Number(target.value);
+      applyStepScale(v);
+    });
+  }
 
   // Create camera and set up controls
   const camera = createCamera(canvas);

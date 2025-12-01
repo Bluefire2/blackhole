@@ -12,6 +12,32 @@ import { Overlay } from './overlay';
 // Whether to show ISCO/event horizon circles for debugging.
 export const showDebugCircles = false;
 
+// Ray marching step controls
+const MAX_STEPS_HARD_LIMIT = 300;
+const MIN_STEPS = 100;
+
+let currentMaxSteps = 200;
+let currentStepScale = 1;
+
+export function setMaxSteps(steps: number) {
+  const clamped = Math.min(
+    MAX_STEPS_HARD_LIMIT,
+    Math.max(MIN_STEPS, Math.floor(steps)),
+  );
+  currentMaxSteps = clamped;
+}
+
+export function getMaxSteps() {
+  return currentMaxSteps;
+}
+
+export function setStepScale(scale: number) {
+  // 1.0 = default quality; >1 uses larger steps (faster, less accurate)
+  // Clamp to a modest range to avoid extreme artifacts.
+  const clamped = Math.min(2, Math.max(0.5, scale));
+  currentStepScale = clamped;
+}
+
 export function startRenderLoop(
   canvas: HTMLCanvasElement,
   overlay: Overlay,
@@ -35,7 +61,6 @@ export function startRenderLoop(
 
   // Black hole parameters (matching shader.wgsl)
   const RS = 2.0; // Schwarzschild radius
-  const MAX_STEPS = 200; // Maximum ray marching steps
   const R_INNER = 3.0; // Accretion disk inner radius (for redshift calculation)
 
   function frame() {
@@ -121,7 +146,7 @@ export function startRenderLoop(
       distanceToHorizon: distanceToHorizon,
       orbitalVelocity: orbitalVelocity,
       fov: camera.fovY,
-      maxRaySteps: MAX_STEPS,
+      maxRaySteps: currentMaxSteps,
       fps: fps,
       timeDilation: timeDilation,
       redshift: redshift,
@@ -131,8 +156,8 @@ export function startRenderLoop(
     const uniformData = new Float32Array([
       width, height, time, camera.fovY,
       camPos[0], camPos[1], camPos[2], showDebugCircles ? 1.0 : 0.0,
-      camFwd[0], camFwd[1], camFwd[2], 0,
-      camRight[0], camRight[1], camRight[2], 0,
+      camFwd[0], camFwd[1], camFwd[2], currentMaxSteps,
+      camRight[0], camRight[1], camRight[2], currentStepScale,
       camUp[0], camUp[1], camUp[2], 0,
     ]);
     resources.device.queue.writeBuffer(resources.uniformBuffer, 0, uniformData);
