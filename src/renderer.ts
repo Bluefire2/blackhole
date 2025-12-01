@@ -24,7 +24,31 @@ export function startRenderLoop(
     height,
   );
 
+  // FPS tracking
+  let lastFrameTime = performance.now();
+  let fps = 0;
+  const frameTimeHistory: number[] = [];
+  const fpsHistorySize = 30; // Average over last 30 frames
+
+  // Black hole parameters (matching shader.wgsl)
+  const RS = 2.0; // Schwarzschild radius
+  const SPIN = 0.99; // Black hole spin
+  const useKerr = false; // Currently using Schwarzschild
+  const MAX_STEPS = 200; // Maximum ray marching steps
+
   function frame() {
+    const currentTime = performance.now();
+    const frameDelta = (currentTime - lastFrameTime) / 1000;
+    lastFrameTime = currentTime;
+
+    // Update FPS using rolling average
+    frameTimeHistory.push(frameDelta);
+    if (frameTimeHistory.length > fpsHistorySize) {
+      frameTimeHistory.shift();
+    }
+    const avgFrameTime = frameTimeHistory.reduce((a, b) => a + b, 0) / frameTimeHistory.length;
+    fps = 1.0 / avgFrameTime;
+
     const { camPos, camFwd, camRight, camUp } = calculateCameraVectors(camera);
 
     const { width, height } = resizeCanvasToDisplaySize(canvas);
@@ -45,12 +69,43 @@ export function startRenderLoop(
     const _debug = { lf, lr, lu, fr, fu, ru }; // Keep in scope for debugging
     void _debug; // Suppress unused variable warning
 
-    // Update info display
-    const pitchDeg = (camera.pitch * 180 / Math.PI).toFixed(1);
-    const yawDeg = (camera.yaw * 180 / Math.PI).toFixed(1);
-    overlay.setInfo(
-      `WebGPU ok | ${width}x${height} | Pitch: ${pitchDeg}° | Yaw: ${yawDeg}° | Distance: ${camera.radius.toFixed(1)} | Time: ${time.toFixed(1)}s`,
-    );
+    // Calculate distance to event horizon
+    // In geometric units: RS = 2M, where M is the mass
+    // For Schwarzschild: horizon is at RS = 2.0
+    // The horizon is at 1.0 * RS (since RS itself = 2.0)
+    const camDistance = Math.hypot(camPos[0], camPos[1], camPos[2]);
+    let horizonRadius: number;
+    if (useKerr) {
+      // Kerr: rh = (1.0 + sqrt(1.0 - SPIN^2)) * 2.0
+      // M = RS/2 = 1.0, so rh = 1.0 + sqrt(1.0 - SPIN^2)
+      const rh = 1.0 + Math.sqrt(1.0 - SPIN * SPIN);
+      horizonRadius = rh * 2.0;
+    } else {
+      // Schwarzschild: horizon is at RS = 2.0
+      horizonRadius = RS;
+    }
+    // Distance from camera to horizon, converted to units of RS
+    const distanceToHorizon = (camDistance - horizonRadius) / RS;
+
+    // Calculate orbital velocity (Keplerian)
+    // From shader: omega = 2.0 * pow(r, -0.5)
+    // v = r * omega = r * 2.0 / sqrt(r) = 2.0 * sqrt(r)
+    const orbitalVelocity = camDistance > 0 ? 2.0 * Math.sqrt(camDistance) : 0;
+
+    // Update overlay with metrics
+    // Convert distance to RS units for display
+    overlay.setMetrics({
+      resolution: `${width}x${height}`,
+      pitch: camera.pitch * 180 / Math.PI,
+      yaw: camera.yaw * 180 / Math.PI,
+      distance: camDistance / RS, // Convert to RS units
+      time: time,
+      distanceToHorizon: distanceToHorizon,
+      orbitalVelocity: orbitalVelocity,
+      fov: camera.fovY,
+      maxRaySteps: MAX_STEPS,
+      fps: fps,
+    });
 
     // Pack uniforms exactly as your WGSL struct expects (20 floats)
     const uniformData = new Float32Array([
