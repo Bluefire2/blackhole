@@ -19,6 +19,55 @@
         height: 100vh;
         display: block;
       }
+      #controls {
+        position: fixed;
+        right: 0.5rem;
+        top: 0.5rem;
+        background: rgba(0,0,0,0.5);
+        color: #0f0;
+        font-size: 12px;
+        font-family: monospace;
+        padding: 0.5rem 0.75rem;
+        border-radius: 4px;
+        border: 1px solid rgba(0, 255, 0, 0.4);
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.25rem;
+      }
+      #controls label {
+        white-space: nowrap;
+      }
+      #controls .control-row {
+        display: grid;
+        /* Fixed-width first column so sliders line up, separate icon, flexible slider, value on the right */
+        grid-template-columns: 150px auto 1fr max-content;
+        align-items: center;
+        column-gap: 0.5rem;
+      }
+      #controls .control-row label {
+        text-align: left; /* left-align label text while keeping fixed label column */
+        white-space: normal; /* allow wrapping instead of overlapping slider */
+        /* Make label non-interactive so hovering it doesn't trigger slider hover styling */
+        pointer-events: none;
+      }
+      #controls .info-icon {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        border: 1px solid rgba(0, 255, 0, 0.6);
+        font-size: 9px;
+        cursor: help; /* indicate that hovering shows more information */
+        color: #0f0;
+        /* Re-enable pointer events on the icon so tooltips still work. */
+        pointer-events: auto;
+      }
+      #controls input[type="range"] {
+        width: 150px;
+      }
       #overlay {
         position: fixed;
         left: 0.5rem;
@@ -31,10 +80,31 @@
         border-radius: 4px;
       }
     </style>
-    <script type="module" crossorigin src="/blackhole/assets/index--kyAs8TQ.js"></script>
+    <script type="module" crossorigin src="/blackhole/assets/index-DWMxpgDN.js"></script>
   </head>
   <body>
     <canvas id="gpu-canvas"></canvas>
+    <div id="controls">
+      <div style="font-weight: bold; margin-bottom: 0.25rem;">Performance settings</div>
+      <div class="control-row">
+        <label for="render-scale">Resolution</label>
+        <span
+          class="info-icon"
+          title="Render at a lower internal resolution and upscale to fit the window size. Lower values increase FPS but reduce sharpness."
+        >i</span>
+        <input id="render-scale" type="range" min="0.5" max="1" step="0.05" value="1" />
+        <span id="render-scale-value">100%</span>
+      </div>
+      <div class="control-row">
+        <label for="step-scale">Integration step scale</label>
+        <span
+          class="info-icon"
+          title="Scale the ray-marching step size. Higher values are faster but less accurate; lower values are slower but more accurate."
+        >i</span>
+        <input id="step-scale" type="range" min="0.5" max="2" step="0.1" value="1" />
+        <span id="step-scale-value">1.0×</span>
+      </div>
+    </div>
     <div id="overlay">starting…</div>
   </body>
 </html>
