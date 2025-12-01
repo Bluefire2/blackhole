@@ -42,7 +42,7 @@ export class Overlay {
 
   setMetrics(metrics: OverlayMetrics): void {
     const lines: string[] = [];
-    
+
     // Line 1: Basic info
     const basicInfo: string[] = [];
     if (metrics.resolution) basicInfo.push(metrics.resolution);
@@ -73,7 +73,7 @@ export class Overlay {
       if (isFinite(metrics.redshift)) {
         relativisticInfo.push(`Redshift z: ${metrics.redshift >= 0 ? '+' : ''}${metrics.redshift.toFixed(4)}`);
       } else {
-        relativisticInfo.push(`Redshift z: ∞`);
+        relativisticInfo.push('Redshift z: ∞');
       }
     }
     if (relativisticInfo.length > 0) lines.push(relativisticInfo.join(' | '));
