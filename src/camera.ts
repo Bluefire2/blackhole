@@ -12,8 +12,8 @@ export interface CameraState {
 export function createCamera(canvas: HTMLCanvasElement): CameraState {
   const camera: CameraState = {
     yaw: 0,
-    pitch: 0.2,
-    radius: 14.0, // Start outside the disk (R_OUTER is 12.0)
+    pitch: deg2rad(4.5),
+    radius: 18.0, // Start outside the disk (R_OUTER is 12.0)
     fovY: Math.PI / 3, // fixed 60°
   };
 
