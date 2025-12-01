@@ -29,7 +29,7 @@ struct Uniforms {
   fovY       : f32,
 
   camPos     : vec3f,
-  _pad0      : f32,
+  showDebugCircles : f32,
 
   camFwd     : vec3f,
   _pad1      : f32,
@@ -271,9 +271,11 @@ fn fs_main(@builtin(position) fragCoord : vec4f) -> @location(0) vec4f {
     let r  = sqrt(r2);
 
     // 1. Event Horizon Check
+    // 1. Event Horizon Check
     if (r < horizonRad) {
       // Black hole blocks everything behind it
-      return vec4f(accumulatedColor, 1.0);
+      transmittance = 0.0;
+      break;
     }
 
     // 2. Adaptive Step Size
@@ -350,6 +352,47 @@ fn fs_main(@builtin(position) fragCoord : vec4f) -> @location(0) vec4f {
 
   // If we escaped, add sky color attenuated by disk
   let sky = getSkyColor(dir);
-  return vec4f(accumulatedColor + transmittance * sky, 1.0);
+  var finalColor = vec4f(accumulatedColor + transmittance * sky, 1.0);
+
+  // --- Debug Circles (Billboarded / Head-on) ---
+  if (uniforms.showDebugCircles > 0.5) {
+      // Intersect initial camera ray with plane passing through origin, normal = camFwd
+      // Plane: P . N = 0 (since it passes through origin)
+      // Ray: P = O + t*D
+      // (O + t*D) . N = 0  =>  O.N + t*(D.N) = 0  =>  t = - (O.N) / (D.N)
+      
+      // Re-calculate initial direction
+      let initialDir = normalize(uniforms.camFwd
+              + ndc.x * halfX * uniforms.camRight
+              + ndc.y * halfY * uniforms.camUp);
+
+      let denom = dot(initialDir, uniforms.camFwd);
+      
+      if (abs(denom) > 0.001) {
+          let tPlane = -dot(uniforms.camPos, uniforms.camFwd) / denom;
+          
+          if (tPlane > 0.0) {
+              let hitPlane = uniforms.camPos + tPlane * initialDir;
+              let rPlane = length(hitPlane);
+              
+              // Circle thickness
+              let thickness = 0.05 * rPlane; 
+              let w = 0.1;
+
+              // Red Circle at RS (2.0)
+              let dRS = abs(rPlane - RS);
+              let alphaRS = smoothstep(w, 0.0, dRS);
+              finalColor = mix(finalColor, vec4f(1.0, 0.0, 0.0, 1.0), alphaRS);
+
+              // Green Circle at ISCO (3 * RS = 6.0)
+              let ISCO = 3.0 * RS;
+              let dISCO = abs(rPlane - ISCO);
+              let alphaISCO = smoothstep(w, 0.0, dISCO);
+              finalColor = mix(finalColor, vec4f(0.0, 1.0, 0.0, 1.0), alphaISCO);
+          }
+      }
+  }
+
+  return finalColor;
 }
 

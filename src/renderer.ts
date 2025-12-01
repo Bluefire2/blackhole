@@ -9,6 +9,9 @@ import { createPipeline } from './webgpu-setup';
 import type { WebGPUResources } from './webgpu-setup';
 import { Overlay } from './overlay';
 
+// Whether to show ISCO/event horizon circles for debugging.
+export const showDebugCircles = false;
+
 export function startRenderLoop(
   canvas: HTMLCanvasElement,
   overlay: Overlay,
@@ -127,7 +130,7 @@ export function startRenderLoop(
     // Pack uniforms exactly as your WGSL struct expects (20 floats)
     const uniformData = new Float32Array([
       width, height, time, camera.fovY,
-      camPos[0], camPos[1], camPos[2], 0,
+      camPos[0], camPos[1], camPos[2], showDebugCircles ? 1.0 : 0.0,
       camFwd[0], camFwd[1], camFwd[2], 0,
       camRight[0], camRight[1], camRight[2], 0,
       camUp[0], camUp[1], camUp[2], 0,
