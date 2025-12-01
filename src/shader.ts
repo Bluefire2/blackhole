@@ -103,6 +103,61 @@ export const shaderCode = `
       return result;
     }
 
+    // --- Flow Noise / Advection-Regeneration ---
+    // Solves the "infinite winding" problem where streaks get too thin over time.
+    // We blend two noise layers that reset periodically.
+    
+    fn getDiskNoise(hit : vec3f, r : f32, time : f32) -> f32 {
+        // "Flow Noise" or Advection-Regeneration technique.
+        // Problem: If we simply rotate the noise domain by theta = -omega * t, the differential rotation
+        // (omega varies with r) causes the spiral to "wind up" infinitely. The phase difference between
+        // two radii grows linearly with time: dTheta = (omega1 - omega2) * t.
+        // This makes the streaks get thinner and thinner until they look like high-frequency static.
+        
+        // Solution: We use two overlapping noise layers that reset periodically.
+        // As one layer approaches its maximum "winding age" and is about to snap back, it fades out.
+        // Meanwhile, a second layer (offset by half a period) fades in.
+        
+        let period = 20.0; // Duration (seconds) before the noise resets to avoid over-winding.
+        let omega = 2.0 * pow(max(r, R_INNER), -0.5); // Keplerian angular velocity (v ~ 1/sqrt(r))
+        
+        // Base spiral shape (logarithmic spiral).
+        // We add this constant offset so that even when the time-dependent rotation is near 0 (just reset),
+        // the pattern still looks like a spiral, not radial spokes.
+        let baseAngle = 3.0 * log(r);
+
+        // --- Layer 1 ---
+        // phase1 goes from 0.0 to 1.0 over 'period' seconds.
+        let phase1 = fract(time / period);
+        
+        // Triangle wave weight: starts at 0, goes to 1, back to 0.
+        // This ensures the layer is invisible when it "snaps" from phase 1.0 back to 0.0.
+        let weight1 = 1.0 - abs(2.0 * phase1 - 1.0); 
+        
+        // "Age" of the distortion. We center it (-0.5 to 0.5) so the distortion is minimal at peak weight.
+        let age1 = (phase1 - 0.5) * period; 
+        let theta1 = -omega * age1 + baseAngle;
+        
+        let c1 = cos(theta1); let s1 = sin(theta1);
+        let rot1 = vec2f(hit.x * c1 - hit.z * s1, hit.x * s1 + hit.z * c1);
+        let n1 = fbm2(rot1 * 0.5);
+
+        // --- Layer 2 ---
+        // Offset by 0.5 (half a period) so it's at peak weight when Layer 1 is resetting.
+        let phase2 = fract((time / period) + 0.5);
+        let weight2 = 1.0 - abs(2.0 * phase2 - 1.0);
+        let age2 = (phase2 - 0.5) * period;
+        let theta2 = -omega * age2 + baseAngle;
+
+        let c2 = cos(theta2); let s2 = sin(theta2);
+        let rot2 = vec2f(hit.x * c2 - hit.z * s2, hit.x * s2 + hit.z * c2);
+        let n2 = fbm2(rot2 * 0.5);
+
+        // Blend the two layers. The weights naturally sum to 1.0 (triangle waves offset by 0.5).
+        let wTotal = weight1 + weight2;
+        return (n1 * weight1 + n2 * weight2) / wTotal;
+    }
+
     fn getDiskColor(hit : vec3f, r : f32) -> vec4f {
         let rNorm = (r - R_INNER) / (R_OUTER - R_INNER);
         let rNormClamped = saturate(rNorm);
@@ -124,25 +179,20 @@ export const shaderCode = `
         brightness = ringResult.brightness;
         baseColor = ringResult.baseColor;
 
-        // --- Coherent turbulent streaks ---
-        // We want the noise to rotate with the disk (Keplerian flow).
-        // Instead of polar coords (which have seams), we rotate the domain.
-        
-        let omega = 2.0 * pow(max(r, R_INNER), -0.5);
-        let theta = -omega * uniforms.time * 0.5;
-        let c = cos(theta);
-        let s = sin(theta);
-        
-        // Rotate the hit point in the XZ plane
-        let rotX = hit.x * c - hit.z * s;
-        let rotZ = hit.x * s + hit.z * c;
-        
-        let noiseUV = vec2f(rotX, rotZ) * 0.5; // Scale texture
-        
-        let turb = fbm2(noiseUV);
+        // --- Coherent turbulent streaks (Flow Noise) ---
+        let turb = getDiskNoise(hit, r, uniforms.time);
         let turbShaped = pow(turb, 1.2);
 
         brightness = brightness * (0.6 + 0.7 * turbShaped);
+
+        // Re-introduce noiseUV for edge distortion (rigid rotation to avoid winding)
+        let omegaEdge = 2.0 * pow(R_OUTER, -0.5);
+        let thetaEdge = -omegaEdge * uniforms.time * 0.5;
+        let ce = cos(thetaEdge);
+        let se = sin(thetaEdge);
+        let rotX = hit.x * ce - hit.z * se;
+        let rotZ = hit.x * se + hit.z * ce;
+        let noiseUV = vec2f(rotX, rotZ) * 0.5;
 
         // --- Edge Treatment ---
         // 1. Perturb the radius for the fade calculation using noise
