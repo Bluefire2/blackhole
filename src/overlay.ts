@@ -11,6 +11,8 @@ export interface OverlayMetrics {
   orbitalVelocity?: number;
   fov?: number;
   maxRaySteps?: number;
+  timeDilation?: number;
+  redshift?: number;
 }
 
 export class Overlay {
@@ -62,7 +64,21 @@ export class Overlay {
     }
     if (physicsInfo.length > 0) lines.push(physicsInfo.join(' | '));
 
-    // Line 3: Performance & simulation
+    // Line 3: Relativistic effects
+    const relativisticInfo: string[] = [];
+    if (metrics.timeDilation !== undefined) {
+      relativisticInfo.push(`Time Dilation: ${metrics.timeDilation.toFixed(4)}`);
+    }
+    if (metrics.redshift !== undefined) {
+      if (isFinite(metrics.redshift)) {
+        relativisticInfo.push(`Redshift z: ${metrics.redshift >= 0 ? '+' : ''}${metrics.redshift.toFixed(4)}`);
+      } else {
+        relativisticInfo.push(`Redshift z: ∞`);
+      }
+    }
+    if (relativisticInfo.length > 0) lines.push(relativisticInfo.join(' | '));
+
+    // Line 4: Performance & simulation
     const perfInfo: string[] = [];
     if (metrics.fps !== undefined) {
       perfInfo.push(`FPS: ${metrics.fps.toFixed(1)}`);

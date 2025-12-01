@@ -35,6 +35,7 @@ export function startRenderLoop(
   const SPIN = 0.99; // Black hole spin
   const useKerr = false; // Currently using Schwarzschild
   const MAX_STEPS = 200; // Maximum ray marching steps
+  const R_INNER = 3.0; // Accretion disk inner radius (for redshift calculation)
 
   function frame() {
     const currentTime = performance.now();
@@ -92,6 +93,31 @@ export function startRenderLoop(
     // v = r * omega = r * 2.0 / sqrt(r) = 2.0 * sqrt(r)
     const orbitalVelocity = camDistance > 0 ? 2.0 * Math.sqrt(camDistance) : 0;
 
+    // Calculate time dilation factor
+    // For Schwarzschild: dt_proper / dt_coordinate = sqrt(1 - RS/r)
+    // This is how much slower time passes at the camera compared to infinity
+    let timeDilation = 0;
+    if (camDistance > RS) {
+      timeDilation = Math.sqrt(1 - RS / camDistance);
+    } else if (camDistance > 0) {
+      timeDilation = 0; // At or inside horizon, time stops
+    }
+
+    // Calculate gravitational redshift
+    // For light from accretion disk (at r_emit) observed at camera (at r_obs):
+    // z = sqrt((1 - RS/r_obs) / (1 - RS/r_emit)) - 1
+    // Using inner disk radius as reference (where most visible light originates)
+    let redshift = Infinity;
+    if (camDistance > RS && R_INNER > RS) {
+      const factorObs = 1 - RS / camDistance;
+      const factorEmit = 1 - RS / R_INNER;
+      if (factorEmit > 0 && factorObs > 0) {
+        redshift = Math.sqrt(factorObs / factorEmit) - 1;
+      }
+    } else if (camDistance <= RS) {
+      redshift = Infinity; // Inside horizon, infinite redshift
+    }
+
     // Update overlay with metrics
     // Convert distance to RS units for display
     overlay.setMetrics({
@@ -105,6 +131,8 @@ export function startRenderLoop(
       fov: camera.fovY,
       maxRaySteps: MAX_STEPS,
       fps: fps,
+      timeDilation: timeDilation,
+      redshift: redshift,
     });
 
     // Pack uniforms exactly as your WGSL struct expects (20 floats)
