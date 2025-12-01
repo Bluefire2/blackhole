@@ -32,8 +32,6 @@ export function startRenderLoop(
 
   // Black hole parameters (matching shader.wgsl)
   const RS = 2.0; // Schwarzschild radius
-  const SPIN = 0.99; // Black hole spin
-  const useKerr = false; // Currently using Schwarzschild
   const MAX_STEPS = 200; // Maximum ray marching steps
   const R_INNER = 3.0; // Accretion disk inner radius (for redshift calculation)
 
@@ -73,18 +71,9 @@ export function startRenderLoop(
     // Calculate distance to event horizon
     // In geometric units: RS = 2M, where M is the mass
     // For Schwarzschild: horizon is at RS = 2.0
-    // The horizon is at 1.0 * RS (since RS itself = 2.0)
     const camDistance = Math.hypot(camPos[0], camPos[1], camPos[2]);
-    let horizonRadius: number;
-    if (useKerr) {
-      // Kerr: rh = (1.0 + sqrt(1.0 - SPIN^2)) * 2.0
-      // M = RS/2 = 1.0, so rh = 1.0 + sqrt(1.0 - SPIN^2)
-      const rh = 1.0 + Math.sqrt(1.0 - SPIN * SPIN);
-      horizonRadius = rh * 2.0;
-    } else {
-      // Schwarzschild: horizon is at RS = 2.0
-      horizonRadius = RS;
-    }
+    // Schwarzschild: horizon is at RS = 2.0
+    const horizonRadius = RS;
     // Distance from camera to horizon, converted to units of RS
     const distanceToHorizon = (camDistance - horizonRadius) / RS;
 

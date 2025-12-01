@@ -228,10 +228,6 @@ fn getSkyColor(dir : vec3f) -> vec3f {
    return mix(skyBottom, skyTop, tSky);
 }
 
-// Toggle between Schwarzschild and Kerr
-const useKerr : bool = false; 
-const SPIN : f32 = 0.99; // Black hole spin (0.0 to 1.0)
-
 // Helper to calculate acceleration at a given position/velocity state
 // Schwarzschild Geodesic Equation: a = -1.5 * rs * (x cross v)^2 / r^5 * x
 fn getAccelSchwarzschild(p : vec3f, v : vec3f) -> vec3f {
@@ -240,57 +236,6 @@ fn getAccelSchwarzschild(p : vec3f, v : vec3f) -> vec3f {
   let L = cross(p, v);
   let L2 = dot(L, L);
   return -1.5 * RS * L2 / (r2 * r2 * r) * p;
-}
-
-// Kerr Geodesic Equation (Hamiltonian formulation)
-// We use a simplified 3D state (pos, vel) but implicitly track 4D structure
-// This is an approximation suitable for visual ray marching
-fn getAccelKerr(p : vec3f, v : vec3f) -> vec3f {
-    // Kerr metric parameters
-    let a = SPIN;
-    let a2 = a * a;
-    let x = p.x; let y = p.y; let z = p.z;
-    let rho2 = x*x + y*y + z*z; // Approximation for r^2 at large distances
-    
-    // Accurate r calculation for Kerr (Boyer-Lindquist r)
-    // r^2 - 2Mr + a^2 = 0 is horizon. 
-    // We need to invert x^2 + y^2 + z^2 = r^2 + a^2 sin^2 theta
-    // This is complex, so we use a numerical approximation or simplified Hamiltonian
-    // For visual raymarching, we can use the "Kerr-Schild" like derivatives or 
-    // simply integrate the geodesic equation components directly.
-    
-    // Let's use the effective potential approach for the acceleration vector
-    // A robust way for shaders is to compute the Christoffel symbol terms 
-    // only for the dominant terms or use a numerical derivative of the Hamiltonian.
-    
-    // Numerical Derivative Approach (Finite Difference)
-    // H = 0.5 * g^uv * p_u * p_v = 0 (for photons)
-    // We want dx/dlambda = dH/dp, dp/dlambda = -dH/dx
-    
-    // Since implementing full Kerr metric inverse is heavy, we'll use a 
-    // high-quality approximation for the "force" term:
-    // F = - M/r^3 * (r - 3/2 * rs) ... this is Schwarzschild.
-    
-    // For Kerr, the "drag" term is key.
-    // Frame dragging: dphi/dt = -g_tphi / g_phiphi ~ 2Mar / (r^2+a^2)^2
-    
-    // We will add a rotational term to the velocity update.
-    let r = length(p);
-    let r3 = r*r*r;
-    let r5 = r3*r*r;
-    
-    // Base Schwarzschild gravity
-    let L = cross(p, v);
-    let L2 = dot(L, L);
-    let grav = -1.5 * RS * L2 / r5 * p;
-    
-    // Frame dragging (simplified Lense-Thirring effect)
-    // This effectively "twists" the space around the Z axis
-    // Force ~ J x v / r^4
-    let J = vec3f(0.0, 1.0, 0.0) * a * RS; // Angular momentum vector
-    let drag = 3.0 * cross(J, cross(p, v)) / r5;
-    
-    return grav + drag;
 }
 
 // ---- Fragment: Schwarzschild Ray Marching ----
@@ -317,10 +262,8 @@ fn fs_main(@builtin(position) fragCoord : vec4f) -> @location(0) vec4f {
   var accumulatedColor = vec3f(0.0);
   var transmittance = 1.0;
   
-  // Horizon radius depends on spin
-  // r+ = M + sqrt(M^2 - a^2). M = RS/2 = 1.0.
-  let rh = 1.0 + sqrt(1.0 - SPIN * SPIN);
-  let horizonRad = select(RS, rh * 2.0, useKerr); // *2 because our RS=2 units
+  // Horizon radius for Schwarzschild
+  let horizonRad = RS;
 
   // Ray marching loop with RK4 Integration
   for (var i : i32 = 0; i < MAX_STEPS; i = i + 1) {
@@ -347,22 +290,22 @@ fn fs_main(@builtin(position) fragCoord : vec4f) -> @location(0) vec4f {
     
     // k1
     let v1 = dir;
-    let a1 = select(getAccelSchwarzschild(pos, v1), getAccelKerr(pos, v1), useKerr);
+    let a1 = getAccelSchwarzschild(pos, v1);
 
     // k2
     let p2 = pos + v1 * (0.5 * dt);
     let v2 = dir + a1 * (0.5 * dt);
-    let a2 = select(getAccelSchwarzschild(p2, v2), getAccelKerr(p2, v2), useKerr);
+    let a2 = getAccelSchwarzschild(p2, v2);
 
     // k3
     let p3 = pos + v2 * (0.5 * dt);
     let v3 = dir + a2 * (0.5 * dt);
-    let a3 = select(getAccelSchwarzschild(p3, v3), getAccelKerr(p3, v3), useKerr);
+    let a3 = getAccelSchwarzschild(p3, v3);
 
     // k4
     let p4 = pos + v3 * dt;
     let v4 = dir + a3 * dt;
-    let a4 = select(getAccelSchwarzschild(p4, v4), getAccelKerr(p4, v4), useKerr);
+    let a4 = getAccelSchwarzschild(p4, v4);
 
     // Combine weighted average
     let nextPos = pos + (v1 + 2.0 * v2 + 2.0 * v3 + v4) * (dt / 6.0);
