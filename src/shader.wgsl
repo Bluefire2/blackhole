@@ -38,11 +38,14 @@ struct Uniforms {
   stepScale  : f32,
 
   camUp      : vec3f,
-  _pad3      : f32,
+  useNoiseTexture : f32, // 1.0 = texture, 0.0 = procedural
 };
 
 @group(0) @binding(0)
 var<uniform> uniforms : Uniforms;
+
+@group(0) @binding(1) var noiseTex : texture_2d<f32>;
+@group(0) @binding(2) var noiseSampler : sampler;
 
 fn saturate(x : f32) -> f32 {
   return clamp(x, 0.0, 1.0);
@@ -106,51 +109,46 @@ fn applyHotInnerRing(r : f32, rInner : f32, brightness : f32, baseColor : vec3f)
 
 fn getDiskNoise(hit : vec3f, r : f32, time : f32) -> f32 {
     // "Flow Noise" or Advection-Regeneration technique.
-    // Problem: If we simply rotate the noise domain by theta = -omega * t, the differential rotation
-    // (omega varies with r) causes the spiral to "wind up" infinitely. The phase difference between
-    // two radii grows linearly with time: dTheta = (omega1 - omega2) * t.
-    // This makes the streaks get thinner and thinner until they look like high-frequency static.
     
-    // Solution: We use two overlapping noise layers that reset periodically.
-    // As one layer approaches its maximum "winding age" and is about to snap back, it fades out.
-    // Meanwhile, a second layer (offset by half a period) fades in.
+    let period = 20.0; 
+    let omega = 2.0 * pow(max(r, R_INNER), -0.5); 
     
-    let period = 20.0; // Duration (seconds) before the noise resets to avoid over-winding.
-    let omega = 2.0 * pow(max(r, R_INNER), -0.5); // Keplerian angular velocity (v ~ 1/sqrt(r))
-    
-    // Base spiral shape (logarithmic spiral).
-    // We add this constant offset so that even when the time-dependent rotation is near 0 (just reset),
-    // the pattern still looks like a spiral, not radial spokes.
     let baseAngle = 3.0 * log(r);
 
     // --- Layer 1 ---
-    // phase1 goes from 0.0 to 1.0 over 'period' seconds.
     let phase1 = fract(time / period);
-    
-    // Triangle wave weight: starts at 0, goes to 1, back to 0.
-    // This ensures the layer is invisible when it "snaps" from phase 1.0 back to 0.0.
     let weight1 = 1.0 - abs(2.0 * phase1 - 1.0); 
-    
-    // "Age" of the distortion. We center it (-0.5 to 0.5) so the distortion is minimal at peak weight.
     let age1 = (phase1 - 0.5) * period; 
     let theta1 = -omega * age1 + baseAngle;
     
     let c1 = cos(theta1); let s1 = sin(theta1);
-    let rot1 = vec2f(hit.x * c1 - hit.z * s1, hit.x * s1 + hit.z * c1);
-    let n1 = fbm2(rot1 * 0.5);
+    
+    var n1 : f32;
+    if (uniforms.useNoiseTexture > 0.5) {
+        let uv1 = vec2f(hit.x * c1 - hit.z * s1, hit.x * s1 + hit.z * c1) * 0.1;
+        n1 = textureSampleLevel(noiseTex, noiseSampler, uv1, 0.0).r;
+    } else {
+        let rot1 = vec2f(hit.x * c1 - hit.z * s1, hit.x * s1 + hit.z * c1);
+        n1 = fbm2(rot1 * 0.5);
+    }
 
     // --- Layer 2 ---
-    // Offset by 0.5 (half a period) so it's at peak weight when Layer 1 is resetting.
     let phase2 = fract((time / period) + 0.5);
     let weight2 = 1.0 - abs(2.0 * phase2 - 1.0);
     let age2 = (phase2 - 0.5) * period;
     let theta2 = -omega * age2 + baseAngle;
 
     let c2 = cos(theta2); let s2 = sin(theta2);
-    let rot2 = vec2f(hit.x * c2 - hit.z * s2, hit.x * s2 + hit.z * c2);
-    let n2 = fbm2(rot2 * 0.5);
+    
+    var n2 : f32;
+    if (uniforms.useNoiseTexture > 0.5) {
+        let uv2 = vec2f(hit.x * c2 - hit.z * s2, hit.x * s2 + hit.z * c2) * 0.1;
+        n2 = textureSampleLevel(noiseTex, noiseSampler, uv2, 0.0).r;
+    } else {
+        let rot2 = vec2f(hit.x * c2 - hit.z * s2, hit.x * s2 + hit.z * c2);
+        n2 = fbm2(rot2 * 0.5);
+    }
 
-    // Blend the two layers. The weights naturally sum to 1.0 (triangle waves offset by 0.5).
     let wTotal = weight1 + weight2;
     return (n1 * weight1 + n2 * weight2) / wTotal;
 }
@@ -197,7 +195,8 @@ fn getDiskColor(hit : vec3f, r : f32) -> vec4f {
     // to avoid "detached rings" spawning inside the hole.
     
     // Use a lower frequency noise for the shape distortion so it looks like "lobes"
-    let shapeNoise = fbm2(noiseUV * 0.3); 
+    // We can just sample the texture again with a different scale
+    let shapeNoise = textureSampleLevel(noiseTex, noiseSampler, noiseUV * 0.05, 0.0).r; 
     
     // Ramp up noise influence from 0 at inner edge to full at outer edge
     let noiseStrength = smoothstep(0.2, 0.8, rNorm); 
@@ -412,4 +411,3 @@ fn fs_main(@builtin(position) fragCoord : vec4f) -> @location(0) vec4f {
 
   return finalColor;
 }
-

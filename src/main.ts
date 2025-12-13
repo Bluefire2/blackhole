@@ -3,7 +3,7 @@
 
 import { createCamera } from './camera';
 import { initWebGPU } from './webgpu-setup';
-import { startRenderLoop, setStepScale } from './renderer';
+import { startRenderLoop, setStepScale, setUseNoiseTexture } from './renderer';
 import { Overlay } from './overlay';
 import { setRenderScale } from './utils';
 
@@ -61,6 +61,22 @@ async function main() {
     });
   }
 
+  const noiseTextureInput = document.getElementById('use-noise-texture') as HTMLInputElement | null;
+  if (noiseTextureInput) {
+    // Import dynamically to avoid circular dependency if needed, or just use the imported function
+    // We already imported setUseNoiseTexture? No, we need to import it.
+    // I'll assume I need to add it to the import list at the top first.
+    // Wait, I can't edit imports here easily without replacing the whole file or top chunk.
+    // I'll just add the listener here and update imports in a separate step if needed.
+    // Actually, I should check if I imported it. I didn't.
+    // I will add the listener code here, and then update the import.
+
+    noiseTextureInput.addEventListener('change', (e) => {
+      const target = e.target as HTMLInputElement;
+      setUseNoiseTexture(target.checked);
+    });
+  }
+
   // Create camera and set up controls
   const camera = createCamera(canvas);
 
@@ -68,7 +84,7 @@ async function main() {
   const resources = await initWebGPU(canvas, overlay);
 
   // Start render loop
-  startRenderLoop(canvas, overlay, resources, camera);
+  await startRenderLoop(canvas, overlay, resources, camera);
 }
 
 // Wait for DOM to be ready

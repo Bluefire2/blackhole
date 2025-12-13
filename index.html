@@ -103,6 +103,15 @@
         <input id="step-scale" type="range" min="0.5" max="2" step="0.1" value="1" />
         <span id="step-scale-value">1.0×</span>
       </div>
+      <div class="control-row">
+        <label for="use-noise-texture">Use Noise Texture</label>
+        <span
+          class="info-icon"
+          title="Enable to use a pre-calculated noise texture (faster). Disable to use procedural noise (slower)."
+        >i</span>
+        <input id="use-noise-texture" type="checkbox" checked />
+        <span></span>
+      </div>
     </div>
     <div id="overlay">starting…</div>
     <script type="module" src="/src/main.ts"></script>
