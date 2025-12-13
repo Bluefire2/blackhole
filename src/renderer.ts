@@ -18,7 +18,7 @@ const MIN_STEPS = 100;
 
 let currentMaxSteps = 600;
 let currentStepScale = 1;
-let useNoiseTexture = true;
+let useNoiseTexture = false;
 
 export function setMaxSteps(steps: number) {
   const clamped = Math.min(
