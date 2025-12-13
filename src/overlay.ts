@@ -9,10 +9,12 @@ export interface OverlayMetrics {
   time?: number;
   distanceToHorizon?: number;
   orbitalVelocity?: number;
+  gForce?: number;
   fov?: number;
   maxRaySteps?: number;
   timeDilation?: number;
   redshift?: number;
+  metric?: string;
 }
 
 export class Overlay {
@@ -46,26 +48,32 @@ export class Overlay {
     // Line 1: Basic info
     const basicInfo: string[] = [];
     if (metrics.resolution) basicInfo.push(metrics.resolution);
+    if (metrics.fov !== undefined) {
+      basicInfo.push(`FOV: ${(metrics.fov * 180 / Math.PI).toFixed(1)}°`);
+    }
     if (metrics.pitch !== undefined) basicInfo.push(`Pitch: ${metrics.pitch.toFixed(1)}°`);
     if (metrics.yaw !== undefined) basicInfo.push(`Yaw: ${metrics.yaw.toFixed(1)}°`);
-    if (metrics.distance !== undefined) basicInfo.push(`Dist: ${metrics.distance.toFixed(1)} RS`);
+    if (metrics.distance !== undefined) basicInfo.push(`Dist: ${metrics.distance.toFixed(1)} Rₛ`);
     if (basicInfo.length > 0) lines.push(basicInfo.join(' | '));
 
     // Line 2: Physics metrics
     const physicsInfo: string[] = [];
+    if (metrics.metric) {
+      physicsInfo.push(`Metric: ${metrics.metric}`);
+    }
     if (metrics.distanceToHorizon !== undefined) {
-      physicsInfo.push(`Dist to Horizon: ${metrics.distanceToHorizon.toFixed(2)} RS`);
+      physicsInfo.push(`Dist to Horizon: ${metrics.distanceToHorizon.toFixed(2)} Rₛ`);
     }
     if (metrics.orbitalVelocity !== undefined) {
-      physicsInfo.push(`Orbital v: ${metrics.orbitalVelocity.toFixed(3)} RS/s`);
-    }
-    if (metrics.fov !== undefined) {
-      physicsInfo.push(`FOV: ${(metrics.fov * 180 / Math.PI).toFixed(1)}°`);
+      physicsInfo.push(`Orbital v: ${metrics.orbitalVelocity.toFixed(3)} c`);
     }
     if (physicsInfo.length > 0) lines.push(physicsInfo.join(' | '));
 
     // Line 3: Relativistic effects
     const relativisticInfo: string[] = [];
+    if (metrics.gForce !== undefined) {
+      relativisticInfo.push(`Local g: ${metrics.gForce.toFixed(3)} c²/Rₛ`);
+    }
     if (metrics.timeDilation !== undefined) {
       relativisticInfo.push(`Time Dilation: ${metrics.timeDilation.toFixed(4)}`);
     }

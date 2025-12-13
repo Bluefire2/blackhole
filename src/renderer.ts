@@ -91,7 +91,22 @@ export async function startRenderLoop(
     const horizonRadius = RS;
     const distanceToHorizon = (camDistance - horizonRadius) / RS;
 
-    const orbitalVelocity = camDistance > 0 ? 2.0 * Math.sqrt(camDistance) : 0;
+    const orbitalVelocity = camDistance > 1.5 * RS ? Math.sqrt(RS / (2.0 * camDistance)) : 0;
+
+    let gForce = 0;
+    if (camDistance > RS) {
+      // Local proper acceleration: a = GM / (r^2 * sqrt(1 - Rs/r))
+      // In our units: GM = Rs/2, so a = (Rs/2) / (r^2 * sqrt(1 - Rs/r))
+      // a = Rs / (2 * r^2 * sqrt(1 - Rs/r))
+      const denom = 2.0 * camDistance * camDistance * Math.sqrt(1.0 - RS / camDistance);
+      if (denom > 0.0001) {
+        gForce = RS / denom;
+      } else {
+        gForce = Infinity;
+      }
+    } else {
+      gForce = Infinity;
+    }
 
     let timeDilation = 0;
     if (camDistance > RS) {
@@ -119,11 +134,13 @@ export async function startRenderLoop(
       time: time,
       distanceToHorizon: distanceToHorizon,
       orbitalVelocity: orbitalVelocity,
+      gForce: gForce,
       fov: camera.fovY,
       maxRaySteps: currentMaxSteps,
       fps: fps,
       timeDilation: timeDilation,
       redshift: redshift,
+      metric: 'Schwarzschild',
     });
 
     const uniformData = new Float32Array([

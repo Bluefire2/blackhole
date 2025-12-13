@@ -102,7 +102,7 @@ export async function initWebGPU(
   // 2. Get logical device
   const device = await adapter.requestDevice();
 
-  device.addEventListener('uncapturederror', (event) => {
+  device.addEventListener('uncapturederror', (event: Event) => {
     const errorEvent = event as GPUUncapturedErrorEvent;
     const msg = errorEvent.error.message;
     console.error('WebGPU Uncaptured Error:', msg);
