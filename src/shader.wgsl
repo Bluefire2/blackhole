@@ -284,12 +284,23 @@ fn fs_main(@builtin(position) fragCoord : vec4f) -> @location(0) vec4f {
 
     // 2. Adaptive Step Size
     // Step size needs to be small near the disk plane to capture secondary images
+    // AND near the photon sphere (r=3.0) where light bending is extreme.
     let baseDt = max(0.05, 0.1 * r);
     
-    // When close to disk plane (y≈0), reduce step size dramatically
+    // Factor 1: Proximity to disk plane (y=0)
     let distToPlane = abs(pos.y);
-    let planeFactor = smoothstep(0.0, 0.5, distToPlane); // 0 at plane, 1 at y=0.5
-    let dt = baseDt * mix(0.05, 1.0, planeFactor) * uniforms.stepScale; // 5% step size at plane
+    let planeFactor = smoothstep(0.0, 0.5, distToPlane); 
+    
+    // Factor 2: Proximity to Photon Sphere (r=3.0)
+    // Reduce step size significantly when r is near 3.0
+    let distToPhotonSphere = abs(r - 3.0);
+    let photonSphereFactor = smoothstep(0.0, 2.0, distToPhotonSphere); // 0 at r=3, 1 at r=5
+    
+    // Combine factors: we want small steps if EITHER we are near the plane OR near the photon sphere
+    let detailFactor = min(planeFactor, photonSphereFactor);
+    
+    // Allow step size to go down to 1% near critical regions
+    let dt = baseDt * mix(0.01, 1.0, detailFactor) * uniforms.stepScale;
 
     // 3. RK4 Integration Steps
     // Runge-Kutta 4 is a 4th-order method for solving ODEs.
