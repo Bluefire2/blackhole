@@ -13,10 +13,10 @@ import { Overlay } from './overlay';
 export const showDebugCircles = false;
 
 // Ray marching step controls
-const MAX_STEPS_HARD_LIMIT = 300;
+const MAX_STEPS_HARD_LIMIT = 800;
 const MIN_STEPS = 100;
 
-let currentMaxSteps = 200;
+let currentMaxSteps = 600;
 let currentStepScale = 1;
 
 export function setMaxSteps(steps: number) {
