@@ -92,6 +92,34 @@
       padding: 0.5rem 0.75rem;
       border-radius: 4px;
     }
+
+    #controls-help {
+      position: fixed;
+      left: 0.5rem;
+      bottom: 0.5rem;
+      background: rgba(0, 0, 0, 0.5);
+      color: #0f0;
+      font-size: 13px;
+      font-family: monospace;
+      padding: 0.5rem 0.75rem;
+      border-radius: 4px;
+      display: flex;
+      flex-direction: column;
+      gap: 0.3rem;
+      pointer-events: none;
+    }
+
+    .key {
+      display: inline-block;
+      border: 1px solid #0f0;
+      border-radius: 3px;
+      padding: 0 4px;
+      margin: 0 1px;
+      font-weight: bold;
+      background: rgba(0, 50, 0, 0.3);
+      min-width: 12px;
+      text-align: center;
+    }
   </style>
 </head>
 
@@ -120,6 +148,11 @@
       <input id="use-noise-texture" type="checkbox" />
       <span></span>
     </div>
+  </div>
+  <div id="controls-help">
+    <div>Mouse Drag &rarr; Rotate</div>
+    <div>Wheel &rarr; Zoom</div>
+    <div><span class="key">Q</span><span class="key">E</span> &rarr; Roll</div>
   </div>
   <div id="overlay">starting…</div>
   <script type="module" src="/src/main.ts"></script>

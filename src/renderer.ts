@@ -81,6 +81,9 @@ export async function startRenderLoop(
     const avgFrameTime = frameTimeHistory.reduce((a, b) => a + b, 0) / frameTimeHistory.length;
     fps = 1.0 / avgFrameTime;
 
+    // Update camera state (banking)
+    camera.update(frameDelta);
+
     const { camPos, camFwd, camRight, camUp } = calculateCameraVectors(camera);
 
     const { width, height } = resizeCanvasToDisplaySize(canvas);
@@ -130,6 +133,7 @@ export async function startRenderLoop(
       resolution: `${width}x${height}`,
       pitch: camera.pitch * 180 / Math.PI,
       yaw: camera.yaw * 180 / Math.PI,
+      roll: camera.roll * 180 / Math.PI,
       distance: camDistance / RS,
       time: time,
       distanceToHorizon: distanceToHorizon,

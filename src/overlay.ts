@@ -5,6 +5,7 @@ export interface OverlayMetrics {
   resolution?: string;
   pitch?: number;
   yaw?: number;
+  roll?: number;
   distance?: number;
   time?: number;
   distanceToHorizon?: number;
@@ -53,6 +54,7 @@ export class Overlay {
     }
     if (metrics.pitch !== undefined) basicInfo.push(`Pitch: ${metrics.pitch.toFixed(1)}°`);
     if (metrics.yaw !== undefined) basicInfo.push(`Yaw: ${metrics.yaw.toFixed(1)}°`);
+    if (metrics.roll !== undefined) basicInfo.push(`Roll: ${metrics.roll.toFixed(1)}°`);
     if (metrics.distance !== undefined) basicInfo.push(`Dist: ${metrics.distance.toFixed(1)} Rₛ`);
     if (basicInfo.length > 0) lines.push(basicInfo.join(' | '));
 
