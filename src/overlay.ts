@@ -44,65 +44,83 @@ export class Overlay {
   }
 
   setMetrics(metrics: OverlayMetrics): void {
-    const lines: string[] = [];
+    // Generate structured HTML for HUD layout
+    let html = '';
 
-    // Line 1: Basic info
-    const basicInfo: string[] = [];
-    if (metrics.resolution) basicInfo.push(metrics.resolution);
-    if (metrics.fov !== undefined) {
-      basicInfo.push(`FOV: ${(metrics.fov * 180 / Math.PI).toFixed(1)}°`);
-    }
-    if (metrics.pitch !== undefined) basicInfo.push(`Pitch: ${metrics.pitch.toFixed(1)}°`);
-    if (metrics.yaw !== undefined) basicInfo.push(`Yaw: ${metrics.yaw.toFixed(1)}°`);
-    if (metrics.roll !== undefined) basicInfo.push(`Roll: ${metrics.roll.toFixed(1)}°`);
-    if (metrics.distance !== undefined) basicInfo.push(`Dist: ${metrics.distance.toFixed(1)} Rₛ`);
-    if (basicInfo.length > 0) lines.push(basicInfo.join(' | '));
+    // Helper to create a row
+    const row = (label: string, value: string, unit: string = '', valueClass: string = '') => {
+      return `
+        <div class="overlay-row">
+          <span class="overlay-label">${label}</span>
+          <span>
+            <span class="overlay-value ${valueClass}">${value}</span>
+            ${unit ? `<span class="overlay-unit">${unit}</span>` : ''}
+          </span>
+        </div>`;
+    };
 
-    // Line 2: Physics metrics
-    const physicsInfo: string[] = [];
-    if (metrics.metric) {
-      physicsInfo.push(`Metric: ${metrics.metric}`);
-    }
+    // Helper to create a section
+    const section = (title: string, content: string) => {
+      if (!content) return '';
+      return `
+        <div class="overlay-section">
+          <div class="overlay-section-title">${title}</div>
+          ${content}
+        </div>`;
+    };
+
+    // --- SYSTEM ---
+    let systemContent = '';
+    if (metrics.fps !== undefined) systemContent += row('FPS', metrics.fps.toFixed(1));
+    if (metrics.time !== undefined) systemContent += row('Sim Time', metrics.time.toFixed(1), 's');
+    if (metrics.resolution) systemContent += row('Res', metrics.resolution);
+    if (metrics.maxRaySteps !== undefined) systemContent += row('Max Steps', metrics.maxRaySteps.toString());
+    html += section('System', systemContent);
+
+    // --- CAMERA ---
+    let cameraContent = '';
+    if (metrics.fov !== undefined) cameraContent += row('FOV', (metrics.fov * 180 / Math.PI).toFixed(1), '°');
+    if (metrics.pitch !== undefined) cameraContent += row('Pitch', metrics.pitch.toFixed(1), '°');
+    if (metrics.yaw !== undefined) cameraContent += row('Yaw', metrics.yaw.toFixed(1), '°');
+    if (metrics.roll !== undefined) cameraContent += row('Roll', metrics.roll.toFixed(1), '°');
+    html += section('Camera', cameraContent);
+
+    // --- POSITION ---
+    let posContent = '';
+    if (metrics.distance !== undefined) posContent += row('Distance', metrics.distance.toFixed(2), 'Rₛ');
     if (metrics.distanceToHorizon !== undefined) {
-      physicsInfo.push(`Dist to Horizon: ${metrics.distanceToHorizon.toFixed(2)} Rₛ`);
+      const val = metrics.distanceToHorizon;
+      let style = '';
+      if (val < 0.1) style = 'danger';
+      else if (val < 0.5) style = 'warning';
+      posContent += row('Dist to Horizon', val.toFixed(3), 'Rₛ', style);
     }
-    if (metrics.orbitalVelocity !== undefined) {
-      physicsInfo.push(`Orbital v: ${metrics.orbitalVelocity.toFixed(3)} c`);
-    }
-    if (physicsInfo.length > 0) lines.push(physicsInfo.join(' | '));
+    html += section('Position', posContent);
 
-    // Line 3: Relativistic effects
-    const relativisticInfo: string[] = [];
-    if (metrics.gForce !== undefined) {
-      relativisticInfo.push(`Local g: ${metrics.gForce.toFixed(3)} c²/Rₛ`);
+    // --- PHYSICS ---
+    let physicsContent = '';
+    if (metrics.metric) {
+      let metricDisplay = metrics.metric;
+      if (metricDisplay === 'Schwarzschild') {
+        metricDisplay = '<a href="https://jila.colorado.edu/~ajsh/bh/schwp.html" target="_blank" rel="noopener noreferrer">Schwarzschild</a>';
+      }
+      physicsContent += row('Metric', metricDisplay);
     }
-    if (metrics.timeDilation !== undefined) {
-      relativisticInfo.push(`Time Dilation: ${metrics.timeDilation.toFixed(4)}`);
-    }
+    if (metrics.orbitalVelocity !== undefined) physicsContent += row('Orbital Vel', metrics.orbitalVelocity.toFixed(3), 'c');
+    if (metrics.gForce !== undefined) physicsContent += row('Local g', metrics.gForce.toFixed(3), 'c²/Rₛ');
+    if (metrics.timeDilation !== undefined) physicsContent += row('Time Dilation', metrics.timeDilation.toFixed(4));
     if (metrics.redshift !== undefined) {
       if (isFinite(metrics.redshift)) {
-        relativisticInfo.push(`Redshift z: ${metrics.redshift >= 0 ? '+' : ''}${metrics.redshift.toFixed(4)}`);
+        physicsContent += row('Redshift z', (metrics.redshift >= 0 ? '+' : '') + metrics.redshift.toFixed(4));
       } else {
-        relativisticInfo.push('Redshift z: ∞');
+        physicsContent += row('Redshift z', '∞');
       }
     }
-    if (relativisticInfo.length > 0) lines.push(relativisticInfo.join(' | '));
+    html += section('Physics', physicsContent);
 
-    // Line 4: Performance & simulation
-    const perfInfo: string[] = [];
-    if (metrics.fps !== undefined) {
-      perfInfo.push(`FPS: ${metrics.fps.toFixed(1)}`);
-    }
-    if (metrics.maxRaySteps !== undefined) {
-      perfInfo.push(`Max Steps: ${metrics.maxRaySteps}`);
-    }
-    if (metrics.time !== undefined) {
-      perfInfo.push(`Time: ${metrics.time.toFixed(1)}s`);
-    }
-    if (perfInfo.length > 0) lines.push(perfInfo.join(' | '));
-
-    this.element.innerHTML = lines.join('<br>');
-    this.element.style.color = '#0f0';
+    this.element.innerHTML = html;
+    // Remove direct style setting so CSS takes over
+    this.element.style.color = '';
   }
 
   getElement(): HTMLDivElement {
