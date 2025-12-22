@@ -2,7 +2,7 @@ struct VSOut {
   @builtin(position) position : vec4f
 };
 
-const MAX_STEPS : i32 = 800;
+const MAX_STEPS : i32 = 1500;
 const RS : f32 = 2.0;       // Schwarzschild radius
 const R_INNER : f32 = 6.0;  // Accretion disk inner radius (ISCO)
 const R_OUTER : f32 = 14.0; // Accretion disk outer radius
@@ -293,13 +293,13 @@ fn fs_main(@builtin(position) fragCoord : vec4f) -> @location(0) vec4f {
     // Factor 2: Proximity to Photon Sphere (r=3.0)
     // Reduce step size significantly when r is near 3.0
     let distToPhotonSphere = abs(r - 3.0);
-    let photonSphereFactor = smoothstep(0.0, 2.0, distToPhotonSphere); // 0 at r=3, 1 at r=5
+    let photonSphereFactor = smoothstep(0.0, 1.0, distToPhotonSphere); 
     
     // Combine factors: we want small steps if EITHER we are near the plane OR near the photon sphere
     let detailFactor = min(planeFactor, photonSphereFactor);
     
-    // Allow step size to go down to 1% near critical regions
-    let dt = baseDt * mix(0.01, 1.0, detailFactor) * uniforms.stepScale;
+    // Allow step size to go down to 0.2% near critical regions
+    let dt = baseDt * mix(0.002, 1.0, detailFactor) * uniforms.stepScale;
 
     // 3. RK4 Integration Steps
     // Runge-Kutta 4 is a 4th-order method for solving ODEs.
