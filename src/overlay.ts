@@ -20,6 +20,9 @@ export interface OverlayMetrics {
 
 export class Overlay {
   private element: HTMLDivElement;
+  private contentElement: HTMLDivElement;
+  private toggleBtn: HTMLButtonElement;
+  private collapsed: boolean = false;
 
   constructor(elementId: string = 'overlay') {
     const el = document.getElementById(elementId);
@@ -27,20 +30,42 @@ export class Overlay {
       throw new Error(`Overlay element with id "${elementId}" not found`);
     }
     this.element = el as HTMLDivElement;
+
+    // Initialize the fixed structure
+    this.element.innerHTML = `
+      <div id="overlay-header">
+        <span style="color: rgba(0,255,255,0.7); font-size: 0.8em; letter-spacing: 2px;">HUD</span>
+        <button class="overlay-toggle-btn">HIDE</button>
+      </div>
+      <div id="overlay-content"></div>
+    `;
+
+    this.contentElement = this.element.querySelector('#overlay-content') as HTMLDivElement;
+    this.toggleBtn = this.element.querySelector('.overlay-toggle-btn') as HTMLButtonElement;
+
+    this.toggleBtn.addEventListener('click', () => this.toggle());
+  }
+
+  private toggle(): void {
+    this.collapsed = !this.collapsed;
+    this.element.classList.toggle('collapsed', this.collapsed);
+    this.toggleBtn.textContent = this.collapsed ? 'SHOW' : 'HIDE';
   }
 
   setText(text: string): void {
-    this.element.textContent = text;
+    // For simple text updates, we might want to just show them in the content area
+    // or fallback to previous behavior. For now, let's put it in content.
+    this.contentElement.textContent = text;
   }
 
   setError(message: string): void {
-    this.element.textContent = `Error: ${message}`;
-    this.element.style.color = '#f00';
+    this.contentElement.textContent = `Error: ${message}`;
+    this.contentElement.style.color = '#f00';
   }
 
   setInfo(message: string): void {
-    this.element.textContent = message;
-    this.element.style.color = '#0f0';
+    this.contentElement.textContent = message;
+    this.contentElement.style.color = '#0f0';
   }
 
   setMetrics(metrics: OverlayMetrics): void {
@@ -102,7 +127,7 @@ export class Overlay {
     if (metrics.metric) {
       let metricDisplay = metrics.metric;
       if (metricDisplay === 'Schwarzschild') {
-        metricDisplay = '<a href="https://jila.colorado.edu/~ajsh/bh/schwp.html" target="_blank" rel="noopener noreferrer">Schwarzschild</a>';
+        metricDisplay = '<a href="https://en.wikipedia.org/wiki/Schwarzschild_metric" target="_blank" rel="noopener noreferrer">Schwarzschild</a>';
       }
       physicsContent += row('Metric', metricDisplay);
     }
@@ -118,9 +143,9 @@ export class Overlay {
     }
     html += section('Physics', physicsContent);
 
-    this.element.innerHTML = html;
+    this.contentElement.innerHTML = html;
     // Remove direct style setting so CSS takes over
-    this.element.style.color = '';
+    this.contentElement.style.color = '';
   }
 
   getElement(): HTMLDivElement {
