@@ -189,9 +189,9 @@ export class Overlay {
       // Note: Because we only update DOM when string changes, these links will persist
       // long enough to be clickable unless metric/state changes rapidly.
       if (metricDisplay === 'Schwarzschild') {
-        metricDisplay = '<a href="https://en.wikipedia.org/wiki/Schwarzschild_metric" target="_blank" rel="noopener noreferrer">Schwarzschild</a>';
+        metricDisplay = '<a href="https://en.wikipedia.org/wiki/Schwarzschild_metric" target="_blank" rel="noopener noreferrer">Schwarzschild&nbsp;↗</a>';
       } else if (metricDisplay === 'Kerr') {
-        metricDisplay = '<a href="https://en.wikipedia.org/wiki/Kerr_metric" target="_blank" rel="noopener noreferrer">Kerr</a>';
+        metricDisplay = '<a href="https://en.wikipedia.org/wiki/Kerr_metric" target="_blank" rel="noopener noreferrer">Kerr&nbsp;↗</a>';
       }
       physicsContent += row('Metric', metricDisplay);
       if (metrics.frameDragOmega !== undefined) {
@@ -218,4 +218,3 @@ export class Overlay {
     return this.element;
   }
 }
-
