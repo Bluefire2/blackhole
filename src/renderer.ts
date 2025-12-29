@@ -20,6 +20,11 @@ let currentMaxSteps = 1000;
 let currentStepScale = 1;
 let useNoiseTexture = false;
 
+// Metric state
+export type MetricType = 'Schwarzschild' | 'Kerr';
+let currentMetric: MetricType = 'Schwarzschild'; // Default to Schwarzschild
+let currentSpin = 0.9;
+
 export function setMaxSteps(steps: number) {
   const clamped = Math.min(
     MAX_STEPS_HARD_LIMIT,
@@ -41,6 +46,30 @@ export function setStepScale(scale: number) {
 
 export function setUseNoiseTexture(enabled: boolean) {
   useNoiseTexture = enabled;
+}
+
+export function setMetric(type: MetricType, spin = 0.9) {
+  currentMetric = type;
+  currentSpin = spin;
+}
+
+export function getMetricState() {
+  return { type: currentMetric, spin: currentSpin };
+}
+
+function solve_r_kerr(p: Float32Array | number[] | readonly number[], a: number): number {
+  // r^4 - (rho^2 - a^2)r^2 - a^2 y^2 = 0
+  // p is [x, y, z]
+  const x = p[0];
+  const y = p[1]; // y is axis of rotation
+  const z = p[2];
+
+  const rho2 = x * x + y * y + z * z;
+  const a2 = a * a;
+
+  const term = rho2 - a2;
+  const disc = term * term + 4.0 * a2 * y * y;
+  return Math.sqrt(0.5 * (term + Math.sqrt(disc)));
 }
 
 export async function startRenderLoop(
@@ -91,10 +120,16 @@ export async function startRenderLoop(
 
     // Calculate distance to event horizon
     const camDistance = Math.hypot(camPos[0], camPos[1], camPos[2]);
-    const horizonRadius = RS;
-    const distanceToHorizon = (camDistance - horizonRadius) / RS;
+    const isKerr = currentMetric === 'Kerr';
+    const horizonRadius = isKerr
+      ? 1.0 + Math.sqrt(Math.max(0, 1.0 - currentSpin * currentSpin)) // r+ = M + sqrt(M^2-a^2), M=1 scale implicitly
+      : RS;
 
-    const orbitalVelocity = camDistance > 1.5 * RS ? Math.sqrt(RS / (2.0 * camDistance)) : 0;
+    // Note: RS=2.0 implies M=1.0 in our units if G=c=1.
+
+    const distanceToHorizon = (camDistance - horizonRadius) / (isKerr ? 1.0 : RS); // rough normalized dist
+
+    const orbitalVelocity = camDistance > 1.5 * horizonRadius ? Math.sqrt(RS / (2.0 * camDistance)) : 0; // Approx for Kerr too
 
     let gForce = 0;
     if (camDistance > RS) {
@@ -116,6 +151,25 @@ export async function startRenderLoop(
       timeDilation = Math.sqrt(1 - RS / camDistance);
     } else if (camDistance > 0) {
       timeDilation = 0;
+    }
+
+    // Frame Dragging (Omega)
+    let omega = undefined;
+    if (isKerr) {
+      const a = currentSpin;
+      const r = solve_r_kerr(camPos, a);
+      const theta = Math.acos(Math.abs(camPos[1]) / r); // approx theta from axis (y-axis)
+
+      const r2 = r * r;
+      const a2 = a * a;
+      const sin2Th = Math.sin(theta) ** 2;
+      const delta = r2 - RS * r + a2; // using RS=2M -> 2r
+
+      const denom = (r2 + a2) ** 2 - delta * a2 * sin2Th;
+
+      if (denom > 0.0001) {
+        omega = (RS * r * a) / denom; // 2M r a / A
+      }
     }
 
     let redshift = Infinity;
@@ -144,7 +198,9 @@ export async function startRenderLoop(
       fps: fps,
       timeDilation: timeDilation,
       redshift: redshift,
-      metric: 'Schwarzschild',
+      metric: currentMetric,
+      spin: isKerr ? currentSpin : undefined,
+      frameDragOmega: omega,
     });
 
     const uniformData = new Float32Array([
@@ -153,6 +209,7 @@ export async function startRenderLoop(
       camFwd[0], camFwd[1], camFwd[2], currentMaxSteps,
       camRight[0], camRight[1], camRight[2], currentStepScale,
       camUp[0], camUp[1], camUp[2], useNoiseTexture ? 1.0 : 0.0,
+      isKerr ? 1.0 : 0.0, currentSpin, 0.0, 0.0, // metricType, spin, padding
     ]);
     resources.device.queue.writeBuffer(resources.uniformBuffer, 0, uniformData);
 

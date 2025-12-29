@@ -3,7 +3,7 @@
 
 import { createCamera } from './camera';
 import { initWebGPU } from './webgpu-setup';
-import { startRenderLoop, setStepScale, setUseNoiseTexture } from './renderer';
+import { startRenderLoop, setStepScale, setUseNoiseTexture, setMetric, type MetricType } from './renderer';
 import { Overlay } from './overlay';
 import { setRenderScale } from './utils';
 
@@ -75,6 +75,46 @@ async function main() {
       const target = e.target as HTMLInputElement;
       setUseNoiseTexture(target.checked);
     });
+  }
+
+  // --- Metric & Spin Controls ---
+  // Replaced select with radio buttons: name='metric'
+  const spinSlider = document.getElementById('spin-slider') as HTMLInputElement | null;
+  const spinValue = document.getElementById('spin-value') as HTMLSpanElement | null;
+  const spinRow = document.getElementById('spin-row') as HTMLDivElement | null;
+  const metricInputs = document.querySelectorAll('input[name="metric"]');
+
+  if (spinSlider && spinValue && spinRow && metricInputs.length > 0) {
+    const update = () => {
+      // Find checked radio
+      let metric: MetricType = 'Schwarzschild';
+      for (const input of metricInputs) {
+        if ((input as HTMLInputElement).checked) {
+          metric = (input as HTMLInputElement).value as MetricType;
+        }
+      }
+
+      const spin = Number(spinSlider.value);
+
+      setMetric(metric, spin);
+
+      // Update UI state
+      spinValue.textContent = spin.toFixed(2);
+      if (metric === 'Kerr') {
+        spinRow.style.display = 'grid';
+      } else {
+        spinRow.style.display = 'none';
+      }
+    };
+
+    // Initial state
+    update();
+
+    // Listen to changes on all radio buttons
+    metricInputs.forEach(input => {
+      input.addEventListener('change', update);
+    });
+    spinSlider.addEventListener('input', update);
   }
 
   // Handle interaction hint and cursor

@@ -16,6 +16,8 @@ export interface OverlayMetrics {
   timeDilation?: number;
   redshift?: number;
   metric?: string;
+  spin?: number;
+  frameDragOmega?: number;
 }
 
 export class Overlay {
@@ -128,8 +130,13 @@ export class Overlay {
       let metricDisplay = metrics.metric;
       if (metricDisplay === 'Schwarzschild') {
         metricDisplay = '<a href="https://en.wikipedia.org/wiki/Schwarzschild_metric" target="_blank" rel="noopener noreferrer">Schwarzschild</a>';
+      } else if (metricDisplay === 'Kerr') {
+        metricDisplay = '<a href="https://en.wikipedia.org/wiki/Kerr_metric" target="_blank" rel="noopener noreferrer">Kerr</a>';
       }
       physicsContent += row('Metric', metricDisplay);
+      if (metrics.frameDragOmega !== undefined) {
+        physicsContent += row('Frame Drag Ω', metrics.frameDragOmega.toFixed(4), 'rad/s');
+      }
     }
     if (metrics.orbitalVelocity !== undefined) physicsContent += row('Orbital Vel', metrics.orbitalVelocity.toFixed(3), 'c');
     if (metrics.gForce !== undefined) physicsContent += row('Local g', metrics.gForce.toFixed(3), 'c²/Rₛ');

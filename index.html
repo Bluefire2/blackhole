@@ -275,12 +275,78 @@
     #interaction-hint.fade-out {
       opacity: 0;
     }
+
+    /* Segmented Control */
+    .segmented-control {
+      display: inline-flex;
+      background: rgba(0, 0, 0, 0.5);
+      border: 1px solid rgba(0, 255, 0, 0.4);
+      border-radius: 4px;
+      overflow: hidden;
+      height: 24px;
+    }
+
+    .segmented-control input {
+      display: none;
+    }
+
+    #controls .segmented-control label {
+      cursor: pointer;
+      padding: 0 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 11px;
+      color: #0aa;
+      transition: all 0.2s;
+      border-right: 1px solid rgba(0, 255, 0, 0.2);
+      user-select: none;
+      pointer-events: auto;
+      /* Fix for overly broad .control-row label rule */
+    }
+
+    #controls .segmented-control label:last-child {
+      border-right: none;
+    }
+
+    #controls .segmented-control input:checked+label {
+      background: rgba(0, 255, 0, 0.2);
+      color: #0f0;
+      font-weight: bold;
+      box-shadow: inset 0 0 8px rgba(0, 255, 0, 0.1);
+    }
+
+    #controls .segmented-control label:hover {
+      background: rgba(0, 255, 0, 0.1);
+      color: #cfc;
+    }
   </style>
 </head>
 
 <body>
   <canvas id="gpu-canvas"></canvas>
   <div id="controls">
+    <div style="font-weight: bold; margin-bottom: 0.25rem;">Physics settings</div>
+    <div class="control-row">
+      <label>Metric</label>
+      <span class="info-icon" title="Choose the spacetime metric. Schwarzschild = static, Kerr = rotating.">i</span>
+      <div class="segmented-control" id="metric-control">
+        <input type="radio" name="metric" value="Schwarzschild" id="metric-sch" checked>
+        <label for="metric-sch">Schwarzschild</label>
+        <input type="radio" name="metric" value="Kerr" id="metric-kerr">
+        <label for="metric-kerr">Kerr</label>
+      </div>
+      <span></span>
+    </div>
+    <div class="control-row" id="spin-row">
+      <label for="spin-slider">Spin (a)</label>
+      <span class="info-icon"
+        title="Angular momentum parameter (0 to 1). Determines frame dragging and horizon shape.">i</span>
+      <input id="spin-slider" type="range" min="0.0" max="0.99" step="0.01" value="0.9" />
+      <span id="spin-value">0.90</span>
+    </div>
+    <div style="margin-bottom: 0.5rem;"></div>
+
     <div style="font-weight: bold; margin-bottom: 0.25rem;">Performance settings</div>
     <div class="control-row">
       <label for="render-scale">Resolution</label>

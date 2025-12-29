@@ -39,6 +39,9 @@ struct Uniforms {
 
   camUp      : vec3f,
   useNoiseTexture : f32, // 1.0 = texture, 0.0 = procedural
+
+  metricType : f32, // 0.0 = Schwarzschild, 1.0 = Kerr
+  spin       : f32, // a, default 0.9 for Kerr
 };
 
 @group(0) @binding(0)
@@ -237,6 +240,115 @@ fn getAccelSchwarzschild(p : vec3f, v : vec3f) -> vec3f {
   return -1.5 * RS * L2 / (r2 * r2 * r) * p;
 }
 
+// ---- Kerr Metric Helpers (Kerr-Schild coordinates) ----
+
+fn solve_r_kerr(p : vec3f, a : f32) -> f32 {
+  // r^4 - (x^2 + y^2 + z^2 - a^2) r^2 - a^2 z^2 = 0
+  let rho2 = dot(p, p);
+  // In our coordinates, Y is the axis of rotation (per previous analysis)
+  let axisCoord = p.y; 
+  let z2 = axisCoord * axisCoord;
+  
+  let term = rho2 - a * a;
+  let disc = term * term + 4.0 * a * a * z2;
+  return sqrt(0.5 * (term + sqrt(disc)));
+}
+
+struct Derivatives {
+  dx_dlambda : vec4f, // velocity (v^mu)
+  dp_dlambda : vec4f, // force    (dp_mu/dlambda)
+}
+
+fn getKerrDerivatives(pos : vec4f, mom : vec4f, a : f32) -> Derivatives {
+    let p3 = pos.yzw; // spatial position
+    let r = solve_r_kerr(p3, a);
+    
+    let r2 = r * r;
+    let a2 = a * a;
+    let x = p3.x;
+    let y = p3.y; // Axis of rotation
+    let z = p3.z;
+    
+    // Metric function f = 2Mr^3 / (r^4 + a^2 y^2) [since y is axis]
+    let f_num = RS * r * r * r; 
+    let f_den = r2 * r2 + a2 * y * y;
+    let f = f_num / f_den;
+    
+    // Null vector l_mu (covariant) in Kerr-Schild coordinates (Y-axis rotation)
+    // l_x = (rx + az) / (r^2 + a^2)
+    // l_z = (rz - ax) / (r^2 + a^2)
+    // l_y = y / r
+    let inv_r2_a2 = 1.0 / (r2 + a2);
+    let lx = (r * x + a * z) * inv_r2_a2;
+    let lz = (r * z - a * x) * inv_r2_a2;
+    let ly = y / r;
+    
+    let l_vec_cov = vec4f(1.0, lx, ly, lz); 
+
+    // l^mu = eta^uv l_v. eta = diag(-1, 1, 1, 1).
+    // so l^0 = -1, l^i = l_i
+    let l_upper = vec4f(-1.0, lx, ly, lz);
+    
+    // P_dot_l = l^u p_u = l^0 p_0 + l^i p_i
+    let P_dot_l = dot(l_upper, mom);
+    
+    // 1. dx/dlambda = p^u - f * (P.l) * l^u
+    // p^u = eta^uv p_v.
+    let p_upper = vec4f(-mom.x, mom.y, mom.z, mom.w);
+    let dx = p_upper - f * P_dot_l * l_upper;
+    
+    // 2. dp/dlambda = - dH/dx
+    // H(x, p) = 0.5 * p^2 - 0.5 * f * (P.l)^2
+    // Calculate derivatives via finite differences for robustness.
+    // We hold p constant and vary x.
+    
+    let eps = 0.002;
+    let dx_val = vec3f(eps, 0.0, 0.0);
+    let dy_val = vec3f(0.0, eps, 0.0);
+    let dz_val = vec3f(0.0, 0.0, eps);
+    
+    // Helper to evaluate H_pot = -0.5 * f * (P.l)^2 at pos p_in
+    // We ignore p^2 term as it's constant for partial deriv wrt x.
+    
+    let H_val = get_H_pot(p3, mom, a);
+    let H_px  = get_H_pot(p3 + dx_val, mom, a);
+    let H_py  = get_H_pot(p3 + dy_val, mom, a);
+    let H_pz  = get_H_pot(p3 + dz_val, mom, a);
+    
+    let dH_dx = (H_px - H_val) / eps;
+    let dH_dy = (H_py - H_val) / eps;
+    let dH_dz = (H_pz - H_val) / eps;
+    
+    let dp = vec4f(0.0, -dH_dx, -dH_dy, -dH_dz);
+    
+    var out : Derivatives;
+    out.dx_dlambda = dx;
+    out.dp_dlambda = dp;
+    return out;
+}
+
+fn get_H_pot(p3 : vec3f, mom : vec4f, a : f32) -> f32 {
+    let r = solve_r_kerr(p3, a);
+    let r2 = r * r;
+    let a2 = a * a;
+    let x = p3.x; 
+    let y = p3.y;
+    let z = p3.z;
+    
+    let f = (RS * r * r * r) / (r2 * r2 + a2 * y * y);
+    
+    let inv = 1.0 / (r2 + a2);
+    let lx = (r * x + a * z) * inv;
+    let lz = (r * z - a * x) * inv;
+    let ly = y / r;
+    
+    let l_upper = vec4f(-1.0, lx, ly, lz);
+    let P_dot_l = dot(l_upper, mom);
+    
+    return -0.5 * f * P_dot_l * P_dot_l;
+}
+
+
 // ---- Fragment: Schwarzschild Ray Marching ----
 @fragment
 fn fs_main(@builtin(position) fragCoord : vec4f) -> @location(0) vec4f {
@@ -261,109 +373,186 @@ fn fs_main(@builtin(position) fragCoord : vec4f) -> @location(0) vec4f {
   var accumulatedColor = vec3f(0.0);
   var transmittance = 1.0;
   
-  // Horizon radius for Schwarzschild
-  let horizonRad = RS;
+  // Decide metric parameters
+  let isKerr = (uniforms.metricType > 0.5);
+  let spinA = select(0.0, uniforms.spin, isKerr);
+  
+  // Horizon radius
+  // For Schwarzschild: RS (2.0)
+  // For Kerr: r+ = M + sqrt(M^2 - a^2). Integrate uses M=1 scale usually, but here RS=2M.
+  // M = RS/2 = 1.0. r+ = 1 + sqrt(1 - a^2).
+  // If we are consistent with units RS=2.0 implies M=1.0.
+  let rPlus = 1.0 + sqrt(max(0.0, 1.0 - spinA * spinA));
+  let horizonRad = select(RS, rPlus, isKerr);
 
-  // Ray marching loop with RK4 Integration
+  // Initial State for Kerr (Hamiltonian)
+  // We need 4-momentum p_mu.
+  // For light ray: p^mu dx_mu = 0 (null).
+  // At infinity (camera), metric is roughly Minkowski.
+  // p_mu = (E, vec_p). E = -p_t. |vec_p| = E.
+  // Let's set energy E = 1.0. Then vec_p = dir.
+  // So p_mu (covariant) at camera = (-1, dir.x, dir.y, dir.z).
+  
+  var myPos4 = vec4f(0.0, pos); // t=0
+  var myMom4 = vec4f(-1.0, dir);
+
+
+  // Ray marching loop
   let maxSteps = i32(uniforms.maxSteps);
-  for (var i : i32 = 0; i < MAX_STEPS; i = i + 1) {
-    if (i >= maxSteps) {
-      break;
-    }
-    let r2 = dot(pos, pos);
-    let r  = sqrt(r2);
 
-    // 1. Event Horizon Check
-    // 1. Event Horizon Check
-    if (r < horizonRad) {
-      // Black hole blocks everything behind it
-      transmittance = 0.0;
-      break;
-    }
+  if (isKerr) {
+      // --- KERR INTEGRATION ---
+      // We use Hamiltonian dynamics (H = 1/2 g^uv p_u p_v) instead of the geodesic equation with Christoffel symbols.
+      // Reasons:
+      // 1. Simplicity: Avoids calculating ~40 non-zero Christoffel symbols for the Kerr metric.
+      // 2. Robustness: Only requires the metric function (f) and its spatial derivatives.
+      // 3. Universality: The same Hamiltonian framework handles any metric form (Kerr-Schild here) by just swapping the potential H.
+      for (var i : i32 = 0; i < MAX_STEPS; i = i + 1) {
+        if (i >= maxSteps) { break; }
+        
+        let p3 = myPos4.yzw;
+        let r = solve_r_kerr(p3, spinA);
+        
+        // 1. Horizon Check
+        if (r < horizonRad + 0.05) {
+            transmittance = 0.0;
+            break; 
+        }
+        
+        // 2. Step size
+        // Adaptive based on distance
+        let baseDt = max(0.05, 0.05 * r);
+        let distToPlane = abs(p3.y);
+        let planeFactor = smoothstep(0.0, 0.5, distToPlane);
+        
+        // For Kerr, photon region is complex (r=1 to 4 depending on spin/grade).
+        // Safest is to just reduce step size generally when close to the black hole.
+        let distToHole = max(0.0, r - horizonRad);
+        
+        // Broad region of high precision near the hole
+        let holeFactor = smoothstep(0.0, 3.0, distToHole); 
+        
+        let detail = min(planeFactor, holeFactor);
+        let dt = baseDt * mix(0.01, 1.0, detail) * uniforms.stepScale;
 
-    // 2. Adaptive Step Size
-    // Step size needs to be small near the disk plane to capture secondary images
-    // AND near the photon sphere (r=3.0) where light bending is extreme.
-    let baseDt = max(0.05, 0.1 * r);
-    
-    // Factor 1: Proximity to disk plane (y=0)
-    let distToPlane = abs(pos.y);
-    let planeFactor = smoothstep(0.0, 0.5, distToPlane); 
-    
-    // Factor 2: Proximity to Photon Sphere (r=3.0)
-    // Reduce step size significantly when r is near 3.0
-    let distToPhotonSphere = abs(r - 3.0);
-    let photonSphereFactor = smoothstep(0.0, 1.0, distToPhotonSphere); 
-    
-    // Combine factors: we want small steps if EITHER we are near the plane OR near the photon sphere
-    let detailFactor = min(planeFactor, photonSphereFactor);
-    
-    // Allow step size to go down to 0.2% near critical regions
-    let dt = baseDt * mix(0.002, 1.0, detailFactor) * uniforms.stepScale;
+        // 3. RK4
+        let k1 = getKerrDerivatives(myPos4, myMom4, spinA);
+        
+        let pos2 = myPos4 + k1.dx_dlambda * (0.5 * dt);
+        let mom2 = myMom4 + k1.dp_dlambda * (0.5 * dt);
+        let k2 = getKerrDerivatives(pos2, mom2, spinA);
+        
+        let pos3 = myPos4 + k2.dx_dlambda * (0.5 * dt);
+        let mom3 = myMom4 + k2.dp_dlambda * (0.5 * dt);
+        let k3 = getKerrDerivatives(pos3, mom3, spinA);
+        
+        let pos4 = myPos4 + k3.dx_dlambda * dt;
+        let mom4 = myMom4 + k3.dp_dlambda * dt;
+        let k4 = getKerrDerivatives(pos4, mom4, spinA);
+        
+        let nextPos4 = myPos4 + (k1.dx_dlambda + 2.0 * k2.dx_dlambda + 2.0 * k3.dx_dlambda + k4.dx_dlambda) * (dt / 6.0);
+        let nextMom4 = myMom4 + (k1.dp_dlambda + 2.0 * k2.dp_dlambda + 2.0 * k3.dp_dlambda + k4.dp_dlambda) * (dt / 6.0); // momentum also evolves!
+        
+        // 4. Disk Intersection
+        // The accretion disk lies in the plane y=0 (Kerr-Schild coordinates).
+        // Checks crossing of y-component (index 2 of spatial vector, index 2 of 4-pos).
+        let curY = myPos4.z;
+        let worldY_curr = p3.y;
+        let worldY_next = nextPos4.z; // component 2 is y
+        
+        if (worldY_curr * worldY_next < 0.0) {
+             let frac = -worldY_curr / (worldY_next - worldY_curr);
+             let hit4 = mix(myPos4, nextPos4, frac);
+             let hit = hit4.yzw;
+             let d = length(hit); // Simple radius for disk mapping
 
-    // 3. RK4 Integration Steps
-    // Runge-Kutta 4 is a 4th-order method for solving ODEs.
-    
-    // k1
-    let v1 = dir;
-    let a1 = getAccelSchwarzschild(pos, v1);
+             if (d > R_INNER && d < R_OUTER) {
+                 // Simple texture mapping for now (ignoring visual twisting of the texture itself)
+                 
+                 let disk = getDiskColor(hit, d);
+                 accumulatedColor = accumulatedColor + transmittance * disk.rgb * disk.a;
+                 transmittance = transmittance * (1.0 - disk.a);
+                 if (transmittance < 0.01) { break; }
+             }
+        }
+        
+        myPos4 = nextPos4;
+        myMom4 = nextMom4;
+        
+        // Update generic pos/dir for sky lookup if we break
+        pos = myPos4.yzw;
+        dir = normalize(myMom4.yzw); // spatial direction
+        
+        if (r > 100.0) { break; }
+      }
 
-    // k2
-    let p2 = pos + v1 * (0.5 * dt);
-    let v2 = dir + a1 * (0.5 * dt);
-    let a2 = getAccelSchwarzschild(p2, v2);
+  } else {
+      // --- SCHWARZSCHILD INTEGRATION (Existing) ---
+      for (var i : i32 = 0; i < MAX_STEPS; i = i + 1) {
+        if (i >= maxSteps) {
+          break;
+        }
+        let r2 = dot(pos, pos);
+        let r  = sqrt(r2);
 
-    // k3
-    let p3 = pos + v2 * (0.5 * dt);
-    let v3 = dir + a2 * (0.5 * dt);
-    let a3 = getAccelSchwarzschild(p3, v3);
+        // 1. Event Horizon Check
+        if (r < horizonRad) {
+          transmittance = 0.0;
+          break;
+        }
 
-    // k4
-    let p4 = pos + v3 * dt;
-    let v4 = dir + a3 * dt;
-    let a4 = getAccelSchwarzschild(p4, v4);
+        // 2. Adaptive Step Size
+        let baseDt = max(0.05, 0.1 * r);
+        let distToPlane = abs(pos.y);
+        let planeFactor = smoothstep(0.0, 0.5, distToPlane); 
+        let distToPhotonSphere = abs(r - 3.0);
+        let photonSphereFactor = smoothstep(0.0, 1.0, distToPhotonSphere); 
+        let detailFactor = min(planeFactor, photonSphereFactor);
+        let dt = baseDt * mix(0.002, 1.0, detailFactor) * uniforms.stepScale;
 
-    // Combine weighted average
-    let nextPos = pos + (v1 + 2.0 * v2 + 2.0 * v3 + v4) * (dt / 6.0);
-    let nextDir = normalize(dir + (a1 + 2.0 * a2 + 2.0 * a3 + a4) * (dt / 6.0));
+        // 3. RK4 Integration Steps
+        let v1 = dir;
+        let a1 = getAccelSchwarzschild(pos, v1);
 
-    // 4. Accretion Disk Intersection (Plane y=0)
-    // Check if we crossed the plane y=0 in this step
-    // We add a small tolerance check to avoid grazing artifacts
-    if (pos.y * nextPos.y < 0.0) {
-        // Linear interpolation to find exact hit point
-        let frac = -pos.y / (nextPos.y - pos.y);
-        let hit = mix(pos, nextPos, frac);
-        let d = length(hit);
+        let p2 = pos + v1 * (0.5 * dt);
+        let v2 = dir + a1 * (0.5 * dt);
+        let a2 = getAccelSchwarzschild(p2, v2);
 
-        if (d > R_INNER && d < R_OUTER) {
-            let disk = getDiskColor(hit, d);
-            
-            // Accumulate emission: color * alpha * transmittance
-            accumulatedColor = accumulatedColor + transmittance * disk.rgb * disk.a;
-            // Attenuate background light
-            transmittance = transmittance * (1.0 - disk.a);
+        let p3 = pos + v2 * (0.5 * dt);
+        let v3 = dir + a2 * (0.5 * dt);
+        let a3 = getAccelSchwarzschild(p3, v3);
 
-            if (transmittance < 0.01) {
-                break;
+        let p4 = pos + v3 * dt;
+        let v4 = dir + a3 * dt;
+        let a4 = getAccelSchwarzschild(p4, v4);
+
+        let nextPos = pos + (v1 + 2.0 * v2 + 2.0 * v3 + v4) * (dt / 6.0);
+        let nextDir = normalize(dir + (a1 + 2.0 * a2 + 2.0 * a3 + a4) * (dt / 6.0));
+
+        // 4. Accretion Disk Intersection (Plane y=0)
+        if (pos.y * nextPos.y < 0.0) {
+            let frac = -pos.y / (nextPos.y - pos.y);
+            let hit = mix(pos, nextPos, frac);
+            let d = length(hit);
+
+            if (d > R_INNER && d < R_OUTER) {
+                let disk = getDiskColor(hit, d);
+                accumulatedColor = accumulatedColor + transmittance * disk.rgb * disk.a;
+                transmittance = transmittance * (1.0 - disk.a);
+
+                if (transmittance < 0.01) {
+                    break;
+                }
             }
         }
-    }
-    
-    // Prevent self-intersection artifacts for rays skimming the disk
-    // If we are very close to the disk but didn't cross it (grazing), 
-    // we might need to be careful not to step "over" it and back without registering.
-    // But for now, the crossing check is robust enough if step size is small.
+        
+        pos = nextPos;
+        dir = nextDir;
 
-    pos = nextPos;
-    dir = nextDir;
-
-    // Escape condition
-    // Use a radius comfortably larger than the maximum camera radius (camera is clamped to 100.0).
-    // This ensures we still integrate geodesics when the observer is far away.
-    if (r > 200.0) {
-        break;
-    }
+        if (r > 200.0) {
+            break;
+        }
+      }
   }
 
   // If we escaped, add sky color attenuated by disk
