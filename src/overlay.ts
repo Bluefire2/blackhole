@@ -26,6 +26,18 @@ export class Overlay {
   private toggleBtn: HTMLButtonElement;
   private collapsed: boolean = false;
 
+  // Persistent containers for each section
+  private sectionSystem: HTMLDivElement;
+  private sectionCamera: HTMLDivElement;
+  private sectionPosition: HTMLDivElement;
+  private sectionPhysics: HTMLDivElement;
+
+  // Cache for last rendered HTML content to avoid unnecessary DOM updates
+  private lastHtmlSystem: string = '';
+  private lastHtmlCamera: string = '';
+  private lastHtmlPosition: string = '';
+  private lastHtmlPhysics: string = '';
+
   constructor(elementId: string = 'overlay') {
     const el = document.getElementById(elementId);
     if (!el) {
@@ -34,16 +46,28 @@ export class Overlay {
     this.element = el as HTMLDivElement;
 
     // Initialize the fixed structure
+    // Added a small gap to overlay-content via inline style for cleaner separation
     this.element.innerHTML = `
       <div id="overlay-header">
         <span style="color: rgba(0,255,255,0.7); font-size: 0.8em; letter-spacing: 2px;">HUD</span>
         <button class="overlay-toggle-btn">HIDE</button>
       </div>
-      <div id="overlay-content"></div>
+      <div id="overlay-content" style="display: flex; flex-direction: column; gap: 4px;"></div>
     `;
 
     this.contentElement = this.element.querySelector('#overlay-content') as HTMLDivElement;
     this.toggleBtn = this.element.querySelector('.overlay-toggle-btn') as HTMLButtonElement;
+
+    // Initialize section containers
+    this.sectionSystem = document.createElement('div');
+    this.sectionCamera = document.createElement('div');
+    this.sectionPosition = document.createElement('div');
+    this.sectionPhysics = document.createElement('div');
+
+    this.contentElement.appendChild(this.sectionSystem);
+    this.contentElement.appendChild(this.sectionCamera);
+    this.contentElement.appendChild(this.sectionPosition);
+    this.contentElement.appendChild(this.sectionPhysics);
 
     this.toggleBtn.addEventListener('click', () => this.toggle());
   }
@@ -55,25 +79,60 @@ export class Overlay {
   }
 
   setText(text: string): void {
-    // For simple text updates, we might want to just show them in the content area
-    // or fallback to previous behavior. For now, let's put it in content.
-    this.contentElement.textContent = text;
+    // For simple text updates, just clear custom sections and show text in system section
+    this.sectionSystem.textContent = text;
+    this.sectionCamera.innerHTML = '';
+    this.sectionPosition.innerHTML = '';
+    this.sectionPhysics.innerHTML = '';
   }
 
   setError(message: string): void {
-    this.contentElement.textContent = `Error: ${message}`;
-    this.contentElement.style.color = '#f00';
+    this.sectionSystem.innerHTML = `<div style="color: #f00">Error: ${message}</div>`;
   }
 
   setInfo(message: string): void {
-    this.contentElement.textContent = message;
-    this.contentElement.style.color = '#0f0';
+    this.sectionSystem.innerHTML = `<div style="color: #0f0">${message}</div>`;
+  }
+
+  /**
+   * Updates a specific section container. Only writes to DOM if content changed.
+   */
+  private updateSection(
+    container: HTMLDivElement,
+    title: string,
+    content: string,
+    lastHtml: string,
+  ): string {
+    if (!content) {
+      if (container.style.display !== 'none') {
+        container.style.display = 'none';
+        container.innerHTML = '';
+      }
+      return '';
+    }
+
+    // Wrap content in the standard section structure
+    const newHtml = `
+      <div class="overlay-section">
+        <div class="overlay-section-title">${title}</div>
+        ${content}
+      </div>`;
+
+    if (newHtml !== lastHtml) {
+      container.innerHTML = newHtml;
+      container.style.display = 'block';
+      return newHtml;
+    }
+
+    // Ensure it's visible if it exists (in case it was hidden)
+    if (container.style.display === 'none') {
+      container.style.display = 'block';
+    }
+
+    return lastHtml;
   }
 
   setMetrics(metrics: OverlayMetrics): void {
-    // Generate structured HTML for HUD layout
-    let html = '';
-
     // Helper to create a row
     const row = (label: string, value: string, unit: string = '', valueClass: string = '') => {
       return `
@@ -86,23 +145,16 @@ export class Overlay {
         </div>`;
     };
 
-    // Helper to create a section
-    const section = (title: string, content: string) => {
-      if (!content) return '';
-      return `
-        <div class="overlay-section">
-          <div class="overlay-section-title">${title}</div>
-          ${content}
-        </div>`;
-    };
-
     // --- SYSTEM ---
     let systemContent = '';
     if (metrics.fps !== undefined) systemContent += row('FPS', metrics.fps.toFixed(1));
     if (metrics.time !== undefined) systemContent += row('Sim Time', metrics.time.toFixed(1), 's');
     if (metrics.resolution) systemContent += row('Res', metrics.resolution);
     if (metrics.maxRaySteps !== undefined) systemContent += row('Max Steps', metrics.maxRaySteps.toString());
-    html += section('System', systemContent);
+
+    this.lastHtmlSystem = this.updateSection(
+      this.sectionSystem, 'System', systemContent, this.lastHtmlSystem,
+    );
 
     // --- CAMERA ---
     let cameraContent = '';
@@ -110,7 +162,10 @@ export class Overlay {
     if (metrics.pitch !== undefined) cameraContent += row('Pitch', metrics.pitch.toFixed(1), '°');
     if (metrics.yaw !== undefined) cameraContent += row('Yaw', metrics.yaw.toFixed(1), '°');
     if (metrics.roll !== undefined) cameraContent += row('Roll', metrics.roll.toFixed(1), '°');
-    html += section('Camera', cameraContent);
+
+    this.lastHtmlCamera = this.updateSection(
+      this.sectionCamera, 'Camera', cameraContent, this.lastHtmlCamera,
+    );
 
     // --- POSITION ---
     let posContent = '';
@@ -122,12 +177,17 @@ export class Overlay {
       else if (val < 0.5) style = 'warning';
       posContent += row('Dist to Horizon', val.toFixed(3), 'Rₛ', style);
     }
-    html += section('Position', posContent);
+
+    this.lastHtmlPosition = this.updateSection(
+      this.sectionPosition, 'Position', posContent, this.lastHtmlPosition,
+    );
 
     // --- PHYSICS ---
     let physicsContent = '';
     if (metrics.metric) {
       let metricDisplay = metrics.metric;
+      // Note: Because we only update DOM when string changes, these links will persist
+      // long enough to be clickable unless metric/state changes rapidly.
       if (metricDisplay === 'Schwarzschild') {
         metricDisplay = '<a href="https://en.wikipedia.org/wiki/Schwarzschild_metric" target="_blank" rel="noopener noreferrer">Schwarzschild</a>';
       } else if (metricDisplay === 'Kerr') {
@@ -148,11 +208,10 @@ export class Overlay {
         physicsContent += row('Redshift z', '∞');
       }
     }
-    html += section('Physics', physicsContent);
 
-    this.contentElement.innerHTML = html;
-    // Remove direct style setting so CSS takes over
-    this.contentElement.style.color = '';
+    this.lastHtmlPhysics = this.updateSection(
+      this.sectionPhysics, 'Physics', physicsContent, this.lastHtmlPhysics,
+    );
   }
 
   getElement(): HTMLDivElement {
