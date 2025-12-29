@@ -77,6 +77,28 @@ async function main() {
     });
   }
 
+  // Handle interaction hint and cursor
+  const interactionHint = document.getElementById('interaction-hint');
+  const dismissHint = () => {
+    if (interactionHint) {
+      interactionHint.classList.add('fade-out');
+      setTimeout(() => interactionHint.remove(), 500); // Remove after transition
+    }
+    // Remove listeners after first use
+    window.removeEventListener('mousedown', dismissHint);
+    window.removeEventListener('touchstart', dismissHint);
+    window.removeEventListener('keydown', dismissHint);
+  };
+
+  window.addEventListener('mousedown', dismissHint);
+  window.addEventListener('touchstart', dismissHint);
+  window.addEventListener('keydown', dismissHint);
+
+  // Cursor state
+  canvas.addEventListener('mousedown', () => canvas.classList.add('grabbing'));
+  canvas.addEventListener('mouseup', () => canvas.classList.remove('grabbing'));
+  canvas.addEventListener('mouseleave', () => canvas.classList.remove('grabbing'));
+
   // Create camera and set up controls
   const camera = createCamera(canvas);
 
