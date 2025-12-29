@@ -230,8 +230,53 @@
       min-width: 12px;
       text-align: center;
     }
+
+    /* Grab cursor for canvas */
+    #gpu-canvas {
+      cursor: grab;
+    }
+
+    #gpu-canvas.grabbing {
+      cursor: grabbing;
+    }
+
+    /* Interaction Hint Overlay */
+    #interaction-hint {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: rgba(0, 0, 0, 0.6);
+      border: 2px solid rgba(0, 255, 255, 0.5);
+      border-radius: 12px;
+      padding: 1.5rem 2rem;
+      pointer-events: none;
+      /* Let clicks pass through */
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.5rem;
+      color: #0ff;
+      font-family: sans-serif;
+      font-weight: bold;
+      font-size: 1.2rem;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      box-shadow: 0 0 20px rgba(0, 255, 255, 0.3);
+      z-index: 200;
+      transition: opacity 0.5s ease;
+    }
+
+    #interaction-hint .icon {
+      font-size: 2rem;
+      margin-bottom: 0.25rem;
+    }
+
+    #interaction-hint.fade-out {
+      opacity: 0;
+    }
   </style>
-  <script type="module" crossorigin src="/assets/index-Cqh-I8F1.js"></script>
+  <script type="module" crossorigin src="/assets/index-DMNE4aLV.js"></script>
 </head>
 
 <body>
@@ -266,6 +311,11 @@
     <div><span class="key">Q</span><span class="key">E</span> &rarr; Roll</div>
   </div>
   <div id="overlay">starting…</div>
+  <div id="interaction-hint">
+    <div class="icon">🖐️</div>
+    <div>Click & Drag</div>
+    <div style="font-size: 0.8em; opacity: 0.8;">to rotate camera</div>
+  </div>
 </body>
 
 </html>
