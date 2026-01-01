@@ -42,6 +42,7 @@ struct Uniforms {
 
   metricType : f32, // 0.0 = Schwarzschild, 1.0 = Kerr
   spin       : f32, // a, default 0.9 for Kerr
+  useRedshift: f32, // 1.0 = on, 0.0 = off
 };
 
 @group(0) @binding(0)
@@ -156,7 +157,7 @@ fn getDiskNoise(hit : vec3f, r : f32, time : f32) -> f32 {
     return (n1 * weight1 + n2 * weight2) / wTotal;
 }
 
-fn getDiskColor(hit : vec3f, r : f32) -> vec4f {
+fn getDiskColor(hit : vec3f, r : f32, photonMom : vec4f) -> vec4f {
     let rNorm = (r - R_INNER) / (R_OUTER - R_INNER);
     let rNormClamped = saturate(rNorm);
 
@@ -219,6 +220,35 @@ fn getDiskColor(hit : vec3f, r : f32) -> vec4f {
 
     // Boost brightness slightly (uncoupled from fade)
     brightness = max(brightness, 0.05) * 1.5;
+    
+    // --- Redshift / Doppler ---
+    if (uniforms.useRedshift > 0.5) {
+        var u_emit : vec4f;
+        if (uniforms.metricType > 0.5) {
+            u_emit = getKerrOrbitVelocity(hit, r, uniforms.spin);
+        } else {
+            u_emit = getSchwarzschildOrbitVelocity(hit, r);
+        }
+        
+        let g = calculateRedshift(u_emit, photonMom, uniforms.metricType);
+        
+        // Doppler Beaming (L ~ g^4 for intensity, plus frequency shift)
+        // Visually, g^4 is very strong. We use 3.5 as a compromise between physics and dynamic range.
+        let beaming = pow(g, 3.5);
+        
+        // Color shift: Blue light is hotter. Red light is cooler.
+        // Simple simplified model:
+        // if g > 1 (blue shift) -> shift towards white/blue
+        // if g < 1 (red shift)  -> shift towards red/dim
+        
+        brightness = brightness * beaming;
+        
+        // Temperature shift approximation
+        // Mix with blue for g > 1, Red for g < 1
+        let shiftColor = select(vec3f(1.0, 0.3, 0.1), vec3f(0.8, 0.9, 1.0), g > 1.0);
+        let shiftAmt = saturate(abs(g - 1.0) * 0.8);
+        baseColor = mix(baseColor, shiftColor * baseColor, shiftAmt);
+    }
 
     return vec4f(baseColor * brightness, alpha);
 }
@@ -238,6 +268,91 @@ fn getAccelSchwarzschild(p : vec3f, v : vec3f) -> vec3f {
   let L = cross(p, v);
   let L2 = dot(L, L);
   return -1.5 * RS * L2 / (r2 * r2 * r) * p;
+}
+
+// ---- Redshift / Doppler Helper ----
+
+fn calculateRedshift(u_emit : vec4f, p_photon : vec4f, metricType : f32) -> f32 {
+    // Redshift g = nu_obs / nu_emit.
+    // We are tracing backward rays (Camera -> Disk).
+    // p_photon is the momentum of the camera ray incident on the disk.
+    // For an approaching source, u_emit points towards camera, p_photon points towards disk.
+    // Spatial dot product is negative. 
+    // Standard contraction u . p = u^0 p_0 + u^i p_i would sum two negative terms (large magnitude).
+    // This would imply high energy measured by emitter -> Reciprocal g is small (Redshift).
+    // But approaching sources should be Blueshifted (g > 1).
+    
+    // To correct for the backward ray direction without full tensor inversion,
+    // we flip the sign of the time-component term in the dot product.
+    // This transforms the sum from additive (|t| + |x|) to subtractive (|t| - |x|),
+    // yielding a small denominator and thus a large g (Blueshift).
+    
+    // dotProd = -u^0 p_0 + u^i p_i
+    // u^0 > 0. p_0 = -1 (covariant). Term 1 is positive.
+    // u^i p_i is negative for approaching.
+    // Result is (1 - v), which gives g = 1/(1-v) > 1.
+    
+    let dotProd = -u_emit.x * p_photon.x + dot(u_emit.yzw, p_photon.yzw);
+    return 1.0 / abs(dotProd);
+}
+
+fn getSchwarzschildOrbitVelocity(pos : vec3f, r : f32) -> vec4f {
+    // Circular orbit in Schwarzschild.
+    // u^phi = sqrt(M / r^3) * u^t
+    // u^t = 1 / sqrt(1 - 3M/r)
+    // M = RS / 2.0 = 1.0. 
+    // M=1 for formula scaling if RS=2.
+    
+    let M = RS * 0.5;
+    let dist = r;
+    
+    let sqrtTerm = sqrt(1.0 - 3.0 * M / dist);
+    // Stable orbits exist > 3M. Below that, technically simpler fall. 
+    
+    let u_t = 1.0 / max(0.01, sqrtTerm); 
+    let omega = sqrt(M / (dist * dist * dist));
+    
+    // Velocity vector in Cartesian:
+    // v_x = -y * omega
+    // v_z = x * omega
+    // (Notice y is up, so orbit is in x-z plane)
+    // BUT our code uses y-up. Let's check vs_main... x,y,z usage.
+    // Usually accretion disk is in XZ plane (y=0).
+    // Indeed: `distToPlane = abs(pos.y)` implies XZ plane disk.
+    
+    let v_x = -pos.z * omega * u_t; // phi direction
+    let v_z =  pos.x * omega * u_t;
+    
+    return vec4f(u_t, v_x, 0.0, v_z);
+}
+
+fn getKerrOrbitVelocity(pos : vec3f, r : f32, a : f32) -> vec4f {
+    // Circular equatorial orbit in Kerr.
+    // Omega = 1 / (a + r^(3/2))  (for M=1)
+    // u^t = ... complicated
+    // Let's use the prograde velocity for M=1.
+    
+    let M = RS * 0.5;
+    let r32 = pow(r, 1.5);
+    let Omega = 1.0 / (a + r32 / sqrt(M)); // Prograde
+    
+    // Metric components for u^t normalization: g_tt + 2*Omega*g_tphi + Omega^2*g_phiphi = -1 / (u^t)^2
+    // Exact calculation of g_uv in Kerr-Schild is computationally expensive here.
+    // We approximate u^t using the Schwarzschild solution as a proxy for the time dilation factor.
+    // This captures the primary redshift scalings for visualization without full metric inversion.
+    
+    // Construct 4-velocity from angular velocity Omega:
+    // u = u^t * (1, -y*Omega, 0, x*Omega) [Cartesian components]
+    
+    let v_x = -pos.z * Omega;
+    let v_z =  pos.x * Omega;
+    
+    // Approximation for u^t:
+    // Use the Schwarzschild stable orbit time component as a reasonable estimate for magnitude.
+    // u^t ≈ 1 / sqrt(1 - 3M/r)
+    let u_t = 1.0 / sqrt(max(0.01, 1.0 - 3.0 * M / r ));
+    
+    return vec4f(u_t, v_x * u_t, 0.0, v_z * u_t);
 }
 
 // ---- Kerr Metric Helpers (Kerr-Schild coordinates) ----
@@ -469,7 +584,7 @@ fn fs_main(@builtin(position) fragCoord : vec4f) -> @location(0) vec4f {
              if (d > R_INNER && d < R_OUTER) {
                  // Simple texture mapping for now (ignoring visual twisting of the texture itself)
                  
-                 let disk = getDiskColor(hit, d);
+                 let disk = getDiskColor(hit, d, myMom4);
                  accumulatedColor = accumulatedColor + transmittance * disk.rgb * disk.a;
                  transmittance = transmittance * (1.0 - disk.a);
                  if (transmittance < 0.01) { break; }
@@ -536,7 +651,11 @@ fn fs_main(@builtin(position) fragCoord : vec4f) -> @location(0) vec4f {
             let d = length(hit);
 
             if (d > R_INNER && d < R_OUTER) {
-                let disk = getDiskColor(hit, d);
+                // Construct 4-momentum for Schwarzschild (approx): (-1, dir)
+                // Note: dir is normalized spatial vector. E=1.
+                let mom4 = vec4f(-1.0, dir);
+                
+                let disk = getDiskColor(hit, d, mom4);
                 accumulatedColor = accumulatedColor + transmittance * disk.rgb * disk.a;
                 transmittance = transmittance * (1.0 - disk.a);
 

@@ -20,6 +20,14 @@ export interface OverlayMetrics {
   frameDragOmega?: number;
 }
 
+export interface OverlayState {
+  metricType: 'schwarzschild' | 'kerr';
+  spin: number;
+  maxSteps: number;
+  stepScale: number;
+  useRedshift: boolean;
+}
+
 export class Overlay {
   private element: HTMLDivElement;
   private contentElement: HTMLDivElement;
@@ -46,7 +54,6 @@ export class Overlay {
     this.element = el as HTMLDivElement;
 
     // Initialize the fixed structure
-    // Added a small gap to overlay-content via inline style for cleaner separation
     this.element.innerHTML = `
       <div id="overlay-header">
         <span style="color: rgba(0,255,255,0.7); font-size: 0.8em; letter-spacing: 2px;">HUD</span>
@@ -79,7 +86,6 @@ export class Overlay {
   }
 
   setText(text: string): void {
-    // For simple text updates, just clear custom sections and show text in system section
     this.sectionSystem.textContent = text;
     this.sectionCamera.innerHTML = '';
     this.sectionPosition.innerHTML = '';
@@ -111,7 +117,6 @@ export class Overlay {
       return '';
     }
 
-    // Wrap content in the standard section structure
     const newHtml = `
       <div class="overlay-section">
         <div class="overlay-section-title">${title}</div>
@@ -124,7 +129,6 @@ export class Overlay {
       return newHtml;
     }
 
-    // Ensure it's visible if it exists (in case it was hidden)
     if (container.style.display === 'none') {
       container.style.display = 'block';
     }
@@ -133,7 +137,6 @@ export class Overlay {
   }
 
   setMetrics(metrics: OverlayMetrics): void {
-    // Helper to create a row
     const row = (label: string, value: string, unit: string = '', valueClass: string = '') => {
       return `
         <div class="overlay-row">
@@ -186,8 +189,6 @@ export class Overlay {
     let physicsContent = '';
     if (metrics.metric) {
       let metricDisplay = metrics.metric;
-      // Note: Because we only update DOM when string changes, these links will persist
-      // long enough to be clickable unless metric/state changes rapidly.
       if (metricDisplay === 'Schwarzschild') {
         metricDisplay = '<a href="https://en.wikipedia.org/wiki/Schwarzschild_metric" target="_blank" rel="noopener noreferrer">Schwarzschild&nbsp;↗</a>';
       } else if (metricDisplay === 'Kerr') {

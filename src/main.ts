@@ -3,7 +3,7 @@
 
 import { createCamera } from './camera';
 import { initWebGPU } from './webgpu-setup';
-import { startRenderLoop, setStepScale, setUseNoiseTexture, setMetric, type MetricType } from './renderer';
+import { startRenderLoop, setStepScale, setUseNoiseTexture, setMetric, setUseRedshift, type MetricType } from './renderer';
 import { Overlay } from './overlay';
 import { setRenderScale } from './utils';
 
@@ -15,13 +15,14 @@ async function main() {
   }
 
   // Create overlay manager
-  const overlay = new Overlay();
+  const overlay = new Overlay('overlay');
   overlay.setText('Initializing...');
 
-  // Hook up performance-related UI sliders if present
+  // --- UI Controls ---
+
+  // -- RENDER SCALE --
   const renderScaleInput = document.getElementById('render-scale') as HTMLInputElement | null;
   const renderScaleValue = document.getElementById('render-scale-value') as HTMLSpanElement | null;
-
   if (renderScaleInput && renderScaleValue) {
     const applyRenderScale = (value: number) => {
       if (Number.isFinite(value)) {
@@ -29,20 +30,16 @@ async function main() {
         renderScaleValue.textContent = `${Math.round(value * 100)}%`;
       }
     };
-
     const initial = Number(renderScaleInput.value || '1');
     applyRenderScale(initial);
-
     renderScaleInput.addEventListener('input', (e) => {
-      const target = e.target as HTMLInputElement;
-      const v = Number(target.value);
-      applyRenderScale(v);
+      applyRenderScale(Number((e.target as HTMLInputElement).value));
     });
   }
 
+  // -- STEP SCALE --
   const stepScaleInput = document.getElementById('step-scale') as HTMLInputElement | null;
   const stepScaleValue = document.getElementById('step-scale-value') as HTMLSpanElement | null;
-
   if (stepScaleInput && stepScaleValue) {
     const applyStepScale = (value: number) => {
       if (Number.isFinite(value)) {
@@ -50,35 +47,24 @@ async function main() {
         stepScaleValue.textContent = `${value.toFixed(1)}×`;
       }
     };
-
     const initial = Number(stepScaleInput.value || '1');
     applyStepScale(initial);
-
     stepScaleInput.addEventListener('input', (e) => {
-      const target = e.target as HTMLInputElement;
-      const v = Number(target.value);
-      applyStepScale(v);
+      applyStepScale(Number((e.target as HTMLInputElement).value));
     });
   }
 
+  // -- NOISE TEXTURE --
   const noiseTextureInput = document.getElementById('use-noise-texture') as HTMLInputElement | null;
   if (noiseTextureInput) {
-    // Import dynamically to avoid circular dependency if needed, or just use the imported function
-    // We already imported setUseNoiseTexture? No, we need to import it.
-    // I'll assume I need to add it to the import list at the top first.
-    // Wait, I can't edit imports here easily without replacing the whole file or top chunk.
-    // I'll just add the listener here and update imports in a separate step if needed.
-    // Actually, I should check if I imported it. I didn't.
-    // I will add the listener code here, and then update the import.
-
     noiseTextureInput.addEventListener('change', (e) => {
-      const target = e.target as HTMLInputElement;
-      setUseNoiseTexture(target.checked);
+      setUseNoiseTexture((e.target as HTMLInputElement).checked);
     });
   }
 
+
+
   // --- Metric & Spin Controls ---
-  // Replaced select with radio buttons: name='metric'
   const spinSlider = document.getElementById('spin-slider') as HTMLInputElement | null;
   const spinValue = document.getElementById('spin-value') as HTMLSpanElement | null;
   const spinRow = document.getElementById('spin-row') as HTMLDivElement | null;
@@ -95,7 +81,6 @@ async function main() {
       }
 
       const spin = Number(spinSlider.value);
-
       setMetric(metric, spin);
 
       // Update UI state
@@ -116,6 +101,18 @@ async function main() {
     });
     spinSlider.addEventListener('input', update);
   }
+
+  // --- Redshift Control ---
+  const redshiftInput = document.getElementById('use-redshift') as HTMLInputElement | null;
+  if (redshiftInput) {
+    // Initial sync
+    setUseRedshift(redshiftInput.checked);
+
+    redshiftInput.addEventListener('change', () => {
+      setUseRedshift(redshiftInput.checked);
+    });
+  }
+
 
   // Handle interaction hint and cursor
   const interactionHint = document.getElementById('interaction-hint');

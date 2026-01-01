@@ -19,6 +19,11 @@ const MIN_STEPS = 100;
 let currentMaxSteps = 1000;
 let currentStepScale = 1;
 let useNoiseTexture = false;
+let useRedshift = true; // Default to true
+
+export function setUseRedshift(enabled: boolean) {
+  useRedshift = enabled;
+}
 
 // Metric state
 export type MetricType = 'Schwarzschild' | 'Kerr';
@@ -203,15 +208,52 @@ export async function startRenderLoop(
       frameDragOmega: omega,
     });
 
+    // Uniform buffer layout (std140 alignment rules):
+    // 0: resolution (vec2)
+    // 2: time (f32)
+    // 3: fovY (f32)
+    // 4: camPos (vec3)
+    // 7: showDebugCircles (f32)
+    // 8: camFwd (vec3)
+    // 11: maxSteps (f32)
+    // 12: camRight (vec3)
+    // 15: stepScale (f32)
+    // 16: camUp (vec3)
+    // 19: useNoiseTexture (f32)
+    // 20: metricType (f32)
+    // 21: spin (f32)
+    // 22: useRedshift (f32)
+    // 23: padding (f32)
+    // Total: 24 floats (96 bytes) -> aligned to 16 bytes.
+
     const uniformData = new Float32Array([
-      width, height, time, camera.fovY,
-      camPos[0], camPos[1], camPos[2], showDebugCircles ? 1.0 : 0.0,
-      camFwd[0], camFwd[1], camFwd[2], currentMaxSteps,
-      camRight[0], camRight[1], camRight[2], currentStepScale,
-      camUp[0], camUp[1], camUp[2], useNoiseTexture ? 1.0 : 0.0,
-      isKerr ? 1.0 : 0.0, currentSpin, 0.0, 0.0, // metricType, spin, padding
-    ]);
-    resources.device.queue.writeBuffer(resources.uniformBuffer, 0, uniformData);
+      width, height, // resolution
+      time,           // time
+      camera.fovY,    // fovY
+
+      camPos[0], camPos[1], camPos[2], // camPos
+      showDebugCircles ? 1.0 : 0.0,    // showDebugCircles
+
+      camFwd[0], camFwd[1], camFwd[2], // camFwd
+      currentMaxSteps,                 // maxSteps
+
+      camRight[0], camRight[1], camRight[2], // camRight
+      currentStepScale,                      // stepScale
+
+      camUp[0], camUp[1], camUp[2],          // camUp
+      useNoiseTexture ? 1.0 : 0.0,           // useNoiseTexture
+
+      isKerr ? 1.0 : 0.0,                    // metricType
+      currentSpin,                           // spin
+      useRedshift ? 1.0 : 0.0,               // useRedshift
+      0.0,                                    // padding
+    ]); resources.device.queue.writeBuffer(
+      resources.uniformBuffer,
+      0,
+      uniformData.buffer,
+      uniformData.byteOffset,
+      uniformData.byteLength,
+    );
 
     const encoder = resources.device.createCommandEncoder();
     const textureView = resources.context.getCurrentTexture().createView();
