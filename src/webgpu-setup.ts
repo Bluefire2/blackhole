@@ -3,7 +3,6 @@
 /// <reference types="@webgpu/types" />
 
 import { shaderCode } from './shader';
-import { Overlay } from './overlay';
 
 export interface WebGPUResources {
   device: GPUDevice;
@@ -90,17 +89,14 @@ function createNoiseTexture(device: GPUDevice): GPUTexture {
 
 export async function initWebGPU(
   canvas: HTMLCanvasElement,
-  overlay: Overlay,
 ): Promise<WebGPUResources> {
   if (!('gpu' in navigator)) {
-    overlay.setError('WebGPU not supported in this browser.');
     throw new Error('WebGPU not supported in this browser.');
   }
 
   // 1. Get adapter (physical-ish GPU)
   const adapter = await (navigator as any).gpu.requestAdapter();
   if (!adapter) {
-    overlay.setError('No GPU adapter found.');
     throw new Error('No GPU adapter found.');
   }
 
@@ -111,7 +107,6 @@ export async function initWebGPU(
     const errorEvent = event as GPUUncapturedErrorEvent;
     const msg = errorEvent.error.message;
     console.error('WebGPU Uncaptured Error:', msg);
-    overlay.setError(`GPU Error: ${msg}`);
   });
 
   // --- Uniform buffer setup ---
@@ -180,7 +175,6 @@ export async function initWebGPU(
   // 3. Get WebGPU context from canvas
   const context = canvas.getContext('webgpu') as GPUCanvasContext;
   if (!context) {
-    overlay.setError('Could not get webgpu context.');
     throw new Error('Could not get webgpu context.');
   }
 

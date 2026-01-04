@@ -7,7 +7,27 @@ import { calculateCameraVectors } from './camera';
 import type { CameraState } from './camera';
 import { createPipeline } from './webgpu-setup';
 import type { WebGPUResources } from './webgpu-setup';
-import { Overlay } from './overlay';
+
+
+export interface OverlayMetrics {
+  fps?: number;
+  resolution?: string;
+  pitch?: number;
+  yaw?: number;
+  roll?: number;
+  distance?: number;
+  time?: number;
+  distanceToHorizon?: number;
+  orbitalVelocity?: number;
+  gForce?: number;
+  fov?: number;
+  maxRaySteps?: number;
+  timeDilation?: number;
+  redshift?: number;
+  metric?: string;
+  spin?: number;
+  frameDragOmega?: number;
+}
 
 // Whether to show ISCO/event horizon circles for debugging.
 export const showDebugCircles = false;
@@ -79,9 +99,9 @@ function solve_r_kerr(p: Float32Array | number[] | readonly number[], a: number)
 
 export async function startRenderLoop(
   canvas: HTMLCanvasElement,
-  overlay: Overlay,
   resources: WebGPUResources,
   camera: CameraState,
+  onStatsUpdate: (stats: OverlayMetrics) => void,
 ) {
   const { width, height } = resizeCanvasToDisplaySize(canvas);
   const pipeline = await createPipeline(
@@ -188,7 +208,7 @@ export async function startRenderLoop(
       redshift = Infinity;
     }
 
-    overlay.setMetrics({
+    onStatsUpdate({
       resolution: `${width}x${height}`,
       pitch: camera.pitch * 180 / Math.PI,
       yaw: camera.yaw * 180 / Math.PI,

@@ -13,6 +13,7 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.39.1",
+    "@preact/preset-vite": "^2.10.2",
     "@webgpu/types": "^0.1.66",
     "eslint": "^9.39.1",
     "husky": "^9.1.7",
@@ -25,5 +26,8 @@
     "src/**/*.{ts,js}": [
       "eslint --fix"
     ]
+  },
+  "dependencies": {
+    "preact": "^10.28.1"
   }
 }
