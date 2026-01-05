@@ -487,6 +487,7 @@ fn fs_main(@builtin(position) fragCoord : vec4f) -> @location(0) vec4f {
 
   var accumulatedColor = vec3f(0.0);
   var transmittance = 1.0;
+  var hasEscaped = false;
   
   // Decide metric parameters
   let isKerr = (uniforms.metricType > 0.5);
@@ -598,7 +599,10 @@ fn fs_main(@builtin(position) fragCoord : vec4f) -> @location(0) vec4f {
         pos = myPos4.yzw;
         dir = normalize(myMom4.yzw); // spatial direction
         
-        if (r > 100.0) { break; }
+        if (r > 100.0) { 
+            hasEscaped = true;
+            break; 
+        }
       }
 
   } else {
@@ -620,9 +624,15 @@ fn fs_main(@builtin(position) fragCoord : vec4f) -> @location(0) vec4f {
         let baseDt = max(0.05, 0.1 * r);
         let distToPlane = abs(pos.y);
         let planeFactor = smoothstep(0.0, 0.5, distToPlane); 
-        let distToPhotonSphere = abs(r - 3.0);
-        let photonSphereFactor = smoothstep(0.0, 1.0, distToPhotonSphere); 
-        let detailFactor = min(planeFactor, photonSphereFactor);
+        
+        // High, precision near Photon Sphere (r=3) AND Horizon (r=2)
+        // Prevents tunneling through horizon when r approaches 2
+        let distToDanger = min(abs(r - 3.0), max(0.0, r - horizonRad));
+        
+        // We want small steps if distToDanger is small
+        let dangerFactor = smoothstep(0.0, 1.0, distToDanger); 
+        
+        let detailFactor = min(planeFactor, dangerFactor);
         let dt = baseDt * mix(0.002, 1.0, detailFactor) * uniforms.stepScale;
 
         // 3. RK4 Integration Steps
@@ -669,13 +679,17 @@ fn fs_main(@builtin(position) fragCoord : vec4f) -> @location(0) vec4f {
         dir = nextDir;
 
         if (r > 200.0) {
+            hasEscaped = true;
             break;
         }
       }
   }
 
   // If we escaped, add sky color attenuated by disk
-  let sky = getSkyColor(dir);
+  var sky = vec3f(0.0);
+  if (hasEscaped) {
+      sky = getSkyColor(dir);
+  }
   var finalColor = vec4f(accumulatedColor + transmittance * sky, 1.0);
 
   // --- Debug Circles (Billboarded / Head-on) ---
