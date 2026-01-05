@@ -47,6 +47,8 @@ export function Canvas(props: CanvasProps) {
         setStepScale(props.stepScale);
     }, [props.stepScale]);
 
+
+
     useEffect(() => {
         setUseNoiseTexture(props.useNoise);
     }, [props.useNoise]);

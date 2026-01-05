@@ -33,10 +33,10 @@ export interface OverlayMetrics {
 export const showDebugCircles = false;
 
 // Ray marching step controls
-const MAX_STEPS_HARD_LIMIT = 1500;
+const MAX_STEPS_HARD_LIMIT = 2500;
 const MIN_STEPS = 100;
 
-let currentMaxSteps = 1000;
+let currentMaxSteps = 2500;
 let currentStepScale = 1;
 let useNoiseTexture = false;
 let useRedshift = true; // Default to true

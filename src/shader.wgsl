@@ -2,7 +2,7 @@ struct VSOut {
   @builtin(position) position : vec4f
 };
 
-const MAX_STEPS : i32 = 1500;
+const MAX_STEPS : i32 = 2500;
 const RS : f32 = 2.0;       // Schwarzschild radius
 const R_INNER : f32 = 6.0;  // Accretion disk inner radius (ISCO)
 const R_OUTER : f32 = 14.0; // Accretion disk outer radius
