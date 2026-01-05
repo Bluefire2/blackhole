@@ -14,6 +14,9 @@ interface ControlsProps {
     onUseNoiseChange: (v: boolean) => void;
 }
 
+import { Tooltip } from './Tooltip';
+
+
 export function Controls(props: ControlsProps) {
     return (
         <div id="controls">
@@ -21,7 +24,10 @@ export function Controls(props: ControlsProps) {
 
             <div class="control-row">
                 <label>Metric</label>
-                <span class="info-icon" title="Choose the spacetime metric. Schwarzschild = static, Kerr = rotating.">i</span>
+                <Tooltip text="Choose the spacetime metric. Schwarzschild = static, Kerr = rotating.">
+                    <span class="info-icon">i</span>
+                </Tooltip>
+
                 <div class="segmented-control" id="metric-control">
                     <input
                         type="radio" name="metric" value="Schwarzschild" id="metric-sch"
@@ -41,7 +47,10 @@ export function Controls(props: ControlsProps) {
 
             <div class="control-row" id="spin-row" style={{ display: props.metric === 'Kerr' ? 'grid' : 'none' }}>
                 <label for="spin-slider">Spin (a)</label>
-                <span class="info-icon" title="Angular momentum parameter (0 to 1). Determines frame dragging and horizon shape.">i</span>
+                <Tooltip text="Angular momentum parameter (0 to 1). Determines frame dragging and horizon shape.">
+                    <span class="info-icon">i</span>
+                </Tooltip>
+
                 <input
                     id="spin-slider" type="range" min="0.0" max="0.99" step="0.01"
                     value={props.spin}
@@ -52,7 +61,10 @@ export function Controls(props: ControlsProps) {
 
             <div class="control-row">
                 <label for="use-redshift">Enable Redshift</label>
-                <span class="info-icon" title="Toggle gravitational redshift and Doppler beaming effects.">i</span>
+                <Tooltip text="Toggle gravitational redshift and Doppler beaming effects.">
+                    <span class="info-icon">i</span>
+                </Tooltip>
+
                 <input
                     id="use-redshift" type="checkbox"
                     checked={props.useRedshift}
@@ -67,7 +79,10 @@ export function Controls(props: ControlsProps) {
 
             <div class="control-row">
                 <label for="render-scale">Resolution</label>
-                <span class="info-icon" title="Render at a lower internal resolution and upscale to fit the window size. Lower values increase FPS but reduce sharpness.">i</span>
+                <Tooltip text="Render at a lower internal resolution and upscale to fit the window size. Lower values increase FPS but reduce sharpness.">
+                    <span class="info-icon">i</span>
+                </Tooltip>
+
                 <input
                     id="render-scale" type="range" min="0.5" max="1" step="0.05"
                     value={props.resolution}
@@ -78,7 +93,10 @@ export function Controls(props: ControlsProps) {
 
             <div class="control-row">
                 <label for="step-scale">Integration step scale</label>
-                <span class="info-icon" title="Scale the ray-marching step size. Higher values are faster but less accurate; lower values are slower but more accurate.">i</span>
+                <Tooltip text="Scale the ray-marching step size. Higher values are faster but less accurate; lower values are slower but more accurate.">
+                    <span class="info-icon">i</span>
+                </Tooltip>
+
                 <input
                     id="step-scale" type="range" min="0.5" max="2" step="0.1"
                     value={props.stepScale}
@@ -89,7 +107,10 @@ export function Controls(props: ControlsProps) {
 
             <div class="control-row">
                 <label for="use-noise-texture">Use Noise Texture</label>
-                <span class="info-icon" title="Enable to use a pre-calculated noise texture (faster). Disable to use procedural noise (slower).">i</span>
+                <Tooltip text="Enable to use a pre-calculated noise texture (faster). Disable to use procedural noise (slower).">
+                    <span class="info-icon">i</span>
+                </Tooltip>
+
                 <input
                     id="use-noise-texture" type="checkbox"
                     checked={props.useNoise}
