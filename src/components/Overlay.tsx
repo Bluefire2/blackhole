@@ -11,8 +11,8 @@ interface OverlayProps {
 export function Overlay({ metrics }: OverlayProps) {
 
     // Helper row component
-    const Row = ({ label, value, unit = '', valueClass = '' }: { label: string, value: string, unit?: string, valueClass?: string }) => (
-        <div class="overlay-row">
+    const Row = ({ label, value, unit = '', valueClass = '', rowClass = '' }: { label: string, value: string, unit?: string, valueClass?: string, rowClass?: string }) => (
+        <div class={`overlay-row ${rowClass}`}>
             <span class="overlay-label">{label}</span>
             <span>
                 <span class={`overlay-value ${valueClass}`}>{value}</span>
@@ -80,7 +80,7 @@ export function Overlay({ metrics }: OverlayProps) {
             <div id="camera-overlay">
                 <div class="camera-section">
                     <div class="camera-section-title">SYSTEM</div>
-                    {metrics.fps !== undefined && <Row label="FPS" value={metrics.fps.toFixed(1)} />}
+                    {metrics.fps !== undefined && <Row label="FPS" value={metrics.fps.toFixed(1)} rowClass="highlight-row" />}
                     {metrics.time !== undefined && <Row label="SIM TIME" value={metrics.time.toFixed(1)} unit="s" />}
                     {metrics.resolution && <Row label="RES" value={metrics.resolution} />}
                     {metrics.maxRaySteps !== undefined && <Row label="MAX STEPS" value={metrics.maxRaySteps.toString()} />}

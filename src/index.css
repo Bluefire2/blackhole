@@ -268,6 +268,36 @@ body,
   text-shadow: 0 0 5px rgba(255, 68, 68, 0.5);
 }
 
+/* Highlight Row (FPS) */
+.overlay-row.highlight-row {
+  display: flex;
+  background: rgba(0, 255, 64, 0.1);
+  border: 1px solid rgba(0, 255, 64, 0.4);
+  border-radius: 4px;
+  padding: 4px 10px;
+  box-shadow: 0 0 10px rgba(0, 255, 64, 0.1);
+  align-items: center;
+  margin-left: 10px;
+  /* Separate a bit from other elements if needed */
+}
+
+.overlay-row.highlight-row .overlay-label {
+  color: #4f6;
+  font-family: 'Courier New', Courier, monospace;
+  font-weight: bold;
+  opacity: 0.9;
+  text-shadow: 0 0 8px rgba(0, 255, 64, 0.5);
+  margin-right: 12px;
+}
+
+.overlay-row.highlight-row .overlay-value {
+  color: #fff;
+  font-family: 'Courier New', Courier, monospace;
+  font-size: 1.1em;
+  font-weight: bold;
+  text-shadow: 0 0 8px rgba(0, 255, 64, 0.5);
+}
+
 
 
 
