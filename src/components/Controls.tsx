@@ -24,9 +24,11 @@ export function Controls(props: ControlsProps) {
 
             <div class="control-row">
                 <label>Metric</label>
-                <Tooltip text="Choose the spacetime metric. Schwarzschild = static, Kerr = rotating.">
-                    <span class="info-icon">i</span>
+                <Tooltip direction="left" text="Choose the spacetime metric. Schwarzschild = static, Kerr = rotating.">
+                    <span class="info-icon">?</span>
                 </Tooltip>
+
+
 
                 <div class="segmented-control" id="metric-control">
                     <input
@@ -47,9 +49,11 @@ export function Controls(props: ControlsProps) {
 
             <div class="control-row" id="spin-row" style={{ display: props.metric === 'Kerr' ? 'grid' : 'none' }}>
                 <label for="spin-slider">Spin (a)</label>
-                <Tooltip text="Angular momentum parameter (0 to 1). Determines frame dragging and horizon shape.">
-                    <span class="info-icon">i</span>
+                <Tooltip direction="left" text="Angular momentum parameter (0 to 1). Determines frame dragging and horizon shape.">
+                    <span class="info-icon">?</span>
                 </Tooltip>
+
+
 
                 <input
                     id="spin-slider" type="range" min="0.0" max="0.99" step="0.01"
@@ -61,9 +65,11 @@ export function Controls(props: ControlsProps) {
 
             <div class="control-row">
                 <label for="use-redshift">Enable Redshift</label>
-                <Tooltip text="Toggle gravitational redshift and Doppler beaming effects.">
-                    <span class="info-icon">i</span>
+                <Tooltip direction="left" text="Toggle gravitational redshift and Doppler beaming effects.">
+                    <span class="info-icon">?</span>
                 </Tooltip>
+
+
 
                 <input
                     id="use-redshift" type="checkbox"
@@ -79,9 +85,11 @@ export function Controls(props: ControlsProps) {
 
             <div class="control-row">
                 <label for="render-scale">Resolution</label>
-                <Tooltip text="Render at a lower internal resolution and upscale to fit the window size. Lower values increase FPS but reduce sharpness.">
-                    <span class="info-icon">i</span>
+                <Tooltip direction="left" text="Render at a lower internal resolution and upscale to fit the window size. Lower values increase FPS but reduce sharpness.">
+                    <span class="info-icon">?</span>
                 </Tooltip>
+
+
 
                 <input
                     id="render-scale" type="range" min="0.5" max="1" step="0.05"
@@ -93,9 +101,11 @@ export function Controls(props: ControlsProps) {
 
             <div class="control-row">
                 <label for="step-scale">Integration step scale</label>
-                <Tooltip text="Scale the ray-marching step size. Higher values are faster but less accurate; lower values are slower but more accurate.">
-                    <span class="info-icon">i</span>
+                <Tooltip direction="left" text="Scale the ray-marching step size. Higher values are faster but less accurate; lower values are slower but more accurate.">
+                    <span class="info-icon">?</span>
                 </Tooltip>
+
+
 
                 <input
                     id="step-scale" type="range" min="0.5" max="2" step="0.1"
@@ -107,9 +117,11 @@ export function Controls(props: ControlsProps) {
 
             <div class="control-row">
                 <label for="use-noise-texture">Use Noise Texture</label>
-                <Tooltip text="Enable to use a pre-calculated noise texture (faster). Disable to use procedural noise (slower).">
-                    <span class="info-icon">i</span>
+                <Tooltip direction="left" text="Enable to use a pre-calculated noise texture (faster). Disable to use procedural noise (slower).">
+                    <span class="info-icon">?</span>
                 </Tooltip>
+
+
 
                 <input
                     id="use-noise-texture" type="checkbox"

@@ -2,6 +2,8 @@
 import { Fragment } from 'preact';
 import { useState } from 'preact/hooks';
 import type { OverlayMetrics } from '../renderer';
+import { Tooltip } from './Tooltip';
+
 
 interface OverlayProps {
     metrics: OverlayMetrics;
@@ -40,7 +42,13 @@ export function Overlay({ metrics }: OverlayProps) {
                         <div class="overlay-section-title">Physics</div>
                         {metrics.metric && (
                             <div class="overlay-row">
-                                <span class="overlay-label">Metric</span>
+                                <span>
+                                    <span class="overlay-label" style={{ marginRight: 0 }}>Metric</span>
+                                    <Tooltip direction="right" text="The metric is the mathematical description of spacetime geometry. It determines how space and time are warped by a massive object, and how light and matter move under the influence of gravity.">
+                                        <span class="info-icon">?</span>
+                                    </Tooltip>
+                                </span>
+
                                 <span class="overlay-value">
                                     {metrics.metric === 'Schwarzschild' ? (
                                         <a href="https://en.wikipedia.org/wiki/Schwarzschild_metric" target="_blank" rel="noopener noreferrer">Schwarzschild&nbsp;↗</a>

@@ -57,18 +57,65 @@ body,
   pointer-events: none;
 }
 
-#controls .info-icon {
+.info-icon {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   width: 12px;
   height: 12px;
   border-radius: 50%;
-  border: 1px solid rgba(0, 255, 0, 0.6);
+  border: 1px solid currentColor;
   font-size: 9px;
   cursor: help;
-  color: #0f0;
   pointer-events: auto;
+  opacity: 0.8;
+  transition: all 0.2s;
+}
+
+.info-icon:hover {
+  opacity: 1;
+}
+
+#controls .info-icon {
+  background: rgba(0, 255, 0, 0.9);
+  color: #000;
+  border: none;
+  font-weight: bold;
+  font-size: 10px;
+  width: 14px;
+  height: 14px;
+  opacity: 0.9;
+  text-shadow: none;
+  box-shadow: 0 0 8px rgba(0, 255, 0, 0.4);
+}
+
+#controls .info-icon:hover {
+  background: #0f0;
+  opacity: 1;
+  box-shadow: 0 0 12px rgba(0, 255, 0, 0.6);
+  transform: scale(1.1);
+}
+
+#overlay .info-icon {
+  background: rgba(0, 255, 255, 0.9);
+  color: #000;
+  border: none;
+  font-weight: bold;
+  font-size: 10px;
+  width: 14px;
+  height: 14px;
+  margin-left: 6px;
+  position: relative;
+  top: -1px;
+  opacity: 1;
+  text-shadow: none;
+  box-shadow: 0 0 8px rgba(0, 255, 255, 0.4);
+}
+
+#overlay .info-icon:hover {
+  background: #0ff;
+  box-shadow: 0 0 12px rgba(0, 255, 255, 0.6);
+  transform: scale(1.1);
 }
 
 #controls input[type="range"] {
@@ -376,13 +423,12 @@ body,
   visibility: hidden;
   background-color: rgba(0, 20, 30, 0.95);
   color: #fff;
-  text-align: center;
+  text-align: left;
   padding: 8px 12px;
   border-radius: 6px;
   position: absolute;
   z-index: 1000;
   top: 50%;
-  right: 125%;
   transform: translateY(-50%);
   opacity: 0;
   transition: opacity 0.3s;
@@ -397,15 +443,31 @@ body,
   white-space: normal;
 }
 
+.tooltip-content.left {
+  right: 125%;
+}
+
+.tooltip-content.right {
+  left: 125%;
+}
+
 .tooltip-content::after {
   content: "";
   position: absolute;
   top: 50%;
-  left: 100%;
   margin-top: -5px;
   border-width: 5px;
   border-style: solid;
+}
+
+.tooltip-content.left::after {
+  left: 100%;
   border-color: transparent transparent transparent rgba(0, 20, 30, 0.95);
+}
+
+.tooltip-content.right::after {
+  right: 100%;
+  border-color: transparent rgba(0, 20, 30, 0.95) transparent transparent;
 }
 
 .tooltip-container:hover .tooltip-content {
