@@ -268,43 +268,9 @@ body,
   text-shadow: 0 0 5px rgba(255, 68, 68, 0.5);
 }
 
-#overlay-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 0.5rem;
-  pointer-events: none;
-  min-width: 220px;
-}
 
-.overlay-toggle-btn {
-  background: rgba(0, 20, 30, 0.8);
-  border: 1px solid rgba(0, 255, 255, 0.4);
-  color: #0ff;
-  font-family: inherit;
-  font-size: 10px;
-  cursor: pointer;
-  padding: 4px 8px;
-  border-radius: 4px;
-  pointer-events: auto;
-  text-transform: uppercase;
-  letter-spacing: 1px;
-  transition: all 0.2s ease;
-}
 
-.overlay-toggle-btn:hover {
-  background: rgba(0, 255, 255, 0.2);
-  box-shadow: 0 0 8px rgba(0, 255, 255, 0.3);
-}
 
-#overlay.collapsed .overlay-section {
-  display: none;
-}
-
-#overlay.collapsed #overlay-header {
-  margin-bottom: 0;
-  min-width: auto;
-}
 
 #controls-help {
   position: fixed;

@@ -1,6 +1,5 @@
 
 import { Fragment } from 'preact';
-import { useState } from 'preact/hooks';
 import type { OverlayMetrics } from '../renderer';
 import { Tooltip } from './Tooltip';
 
@@ -10,7 +9,6 @@ interface OverlayProps {
 }
 
 export function Overlay({ metrics }: OverlayProps) {
-    const [collapsed, setCollapsed] = useState(false);
 
     // Helper row component
     const Row = ({ label, value, unit = '', valueClass = '' }: { label: string, value: string, unit?: string, valueClass?: string }) => (
@@ -25,13 +23,8 @@ export function Overlay({ metrics }: OverlayProps) {
 
     return (
         <Fragment>
-            <div id="overlay" class={collapsed ? 'collapsed' : ''}>
-                <div id="overlay-header">
-                    <span style={{ color: 'rgba(0,255,255,0.7)', fontSize: '0.8em', letterSpacing: '2px' }}>HUD</span>
-                    <button class="overlay-toggle-btn" onClick={() => setCollapsed(!collapsed)}>
-                        {collapsed ? 'SHOW' : 'HIDE'}
-                    </button>
-                </div>
+            <div id="overlay">
+
 
                 <div id="overlay-content" style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
 
