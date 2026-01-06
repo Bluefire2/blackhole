@@ -6,6 +6,7 @@ import {
     setUseNoiseTexture,
     setMetric,
     setUseRedshift,
+    setShowEventHorizon,
     type MetricType,
     type OverlayMetrics
 } from '../renderer';
@@ -22,6 +23,7 @@ interface CanvasProps {
     resolution: number;
     stepScale: number;
     useNoise: boolean;
+    showEventHorizon: boolean;
     onStatsUpdate: (stats: OverlayMetrics) => void;
     onError: (msg: string) => void;
 }
@@ -52,6 +54,10 @@ export function Canvas(props: CanvasProps) {
     useEffect(() => {
         setUseNoiseTexture(props.useNoise);
     }, [props.useNoise]);
+
+    useEffect(() => {
+        setShowEventHorizon(props.showEventHorizon);
+    }, [props.showEventHorizon]);
 
 
     // Initialize WebGPU once

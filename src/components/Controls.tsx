@@ -12,6 +12,8 @@ interface ControlsProps {
     onStepScaleChange: (v: number) => void;
     useNoise: boolean;
     onUseNoiseChange: (v: boolean) => void;
+    showEventHorizon: boolean;
+    onShowEventHorizonChange: (v: boolean) => void;
 }
 
 import { Tooltip } from './Tooltip';
@@ -61,6 +63,19 @@ export function Controls(props: ControlsProps) {
                     onInput={(e) => props.onSpinChange(Number(e.currentTarget.value))}
                 />
                 <span id="spin-value">{props.spin.toFixed(2)}</span>
+            </div>
+
+            <div class="control-row">
+                <label for="show-horizon">Show Event Horizon</label>
+                <Tooltip direction="left" text="Show the event horizon as a dashed circle.">
+                    <span class="info-icon">?</span>
+                </Tooltip>
+                <input
+                    id="show-horizon" type="checkbox"
+                    checked={props.showEventHorizon}
+                    onChange={(e) => props.onShowEventHorizonChange(e.currentTarget.checked)}
+                />
+                <span></span>
             </div>
 
             <div class="control-row">

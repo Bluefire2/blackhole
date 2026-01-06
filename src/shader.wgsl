@@ -29,7 +29,7 @@ struct Uniforms {
   fovY       : f32,
 
   camPos     : vec3f,
-  showDebugCircles : f32,
+  showEventHorizon : f32,
 
   camFwd     : vec3f,
   maxSteps   : f32,
@@ -692,12 +692,10 @@ fn fs_main(@builtin(position) fragCoord : vec4f) -> @location(0) vec4f {
   }
   var finalColor = vec4f(accumulatedColor + transmittance * sky, 1.0);
 
-  // --- Debug Circles (Billboarded / Head-on) ---
-  if (uniforms.showDebugCircles > 0.5) {
+  // --- Event Horizon Visualization (Dashed Circle) ---
+  if (uniforms.showEventHorizon > 0.5) {
       // Intersect initial camera ray with plane passing through origin, normal = camFwd
-      // Plane: P . N = 0 (since it passes through origin)
-      // Ray: P = O + t*D
-      // (O + t*D) . N = 0  =>  O.N + t*(D.N) = 0  =>  t = - (O.N) / (D.N)
+      // This creates a billboard effect (circle always faces camera)
       
       // Re-calculate initial direction
       let initialDir = normalize(uniforms.camFwd
@@ -711,22 +709,31 @@ fn fs_main(@builtin(position) fragCoord : vec4f) -> @location(0) vec4f {
           
           if (tPlane > 0.0) {
               let hitPlane = uniforms.camPos + tPlane * initialDir;
-              let rPlane = length(hitPlane);
               
-              // Circle thickness
-              let thickness = 0.05 * rPlane; 
-              let w = 0.1;
-
-              // Red Circle at RS (2.0)
-              let dRS = abs(rPlane - RS);
-              let alphaRS = smoothstep(w, 0.0, dRS);
-              finalColor = mix(finalColor, vec4f(1.0, 0.0, 0.0, 1.0), alphaRS);
-
-              // Green Circle at ISCO (3 * RS = 6.0)
-              let ISCO = 3.0 * RS;
-              let dISCO = abs(rPlane - ISCO);
-              let alphaISCO = smoothstep(w, 0.0, dISCO);
-              finalColor = mix(finalColor, vec4f(0.0, 1.0, 0.0, 1.0), alphaISCO);
+              // Correct radius calculation for both Schwarzschild (a=0) and Kerr
+              // solve_r_kerr returns the Boyer-Lindquist radius 'r' for the point.
+              // For Kerr, the horizon is at constant r = rPlus.
+              // This implicitly handles the oblate spheroid shape since 'r' is ellipsoidal.
+              let rVal = solve_r_kerr(hitPlane, spinA);
+              
+              // Circle thickness (scaled by rVal to keep constant visual width roughly)
+              let halfThick = 0.02 * horizonRad; 
+              
+              let d = abs(rVal - horizonRad);
+              
+              // Soft anti-aliased ring
+              let ringAlpha = smoothstep(halfThick, 0.0, d);
+              
+              if (ringAlpha > 0.0) {
+                  // Dash pattern
+                  // Use screen-space angle for dashes
+                  let angle = atan2(ndc.y, ndc.x);
+                  let dashes = smoothstep(0.0, 0.1, sin(angle * 40.0));
+                  
+                  let dashColor = vec4f(1.0, 1.0, 1.0, 0.8); // White, semi-transparent
+                  
+                  finalColor = mix(finalColor, dashColor, ringAlpha * dashes);
+              }
           }
       }
   }

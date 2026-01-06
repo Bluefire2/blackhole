@@ -31,6 +31,7 @@ export interface OverlayMetrics {
 
 // Whether to show ISCO/event horizon circles for debugging.
 export const showDebugCircles = false;
+let showEventHorizon = false;
 
 // Ray marching step controls
 const MAX_STEPS_HARD_LIMIT = 2500;
@@ -71,6 +72,10 @@ export function setStepScale(scale: number) {
 
 export function setUseNoiseTexture(enabled: boolean) {
   useNoiseTexture = enabled;
+}
+
+export function setShowEventHorizon(enabled: boolean) {
+  showEventHorizon = enabled;
 }
 
 export function setMetric(type: MetricType, spin = 0.9) {
@@ -252,7 +257,7 @@ export async function startRenderLoop(
       camera.fovY,    // fovY
 
       camPos[0], camPos[1], camPos[2], // camPos
-      showDebugCircles ? 1.0 : 0.0,    // showDebugCircles
+      showEventHorizon ? 1.0 : 0.0,    // showEventHorizon
 
       camFwd[0], camFwd[1], camFwd[2], // camFwd
       currentMaxSteps,                 // maxSteps

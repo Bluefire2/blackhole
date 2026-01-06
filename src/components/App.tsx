@@ -14,6 +14,7 @@ export function App() {
     const [resolution, setResolution] = useState(1.0);
     const [stepScale, setStepScale] = useState(1.0);
     const [useNoise, setUseNoise] = useState(false);
+    const [showEventHorizon, setShowEventHorizon] = useState(false);
     const [metrics, setMetrics] = useState<OverlayMetrics>({});
     const [error, setError] = useState<string | null>(null);
 
@@ -35,6 +36,7 @@ export function App() {
                 resolution={resolution}
                 stepScale={stepScale}
                 useNoise={useNoise}
+                showEventHorizon={showEventHorizon}
                 onStatsUpdate={setMetrics}
                 onError={setError}
             />
@@ -46,6 +48,7 @@ export function App() {
                 resolution={resolution} onResolutionChange={setResolution}
                 stepScale={stepScale} onStepScaleChange={setStepScale}
                 useNoise={useNoise} onUseNoiseChange={setUseNoise}
+                showEventHorizon={showEventHorizon} onShowEventHorizonChange={setShowEventHorizon}
             />
             <InteractionHint />
             <div id="controls-help">
