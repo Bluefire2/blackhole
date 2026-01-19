@@ -3,6 +3,8 @@
 /// <reference types="@webgpu/types" />
 
 import { shaderCode } from './shader';
+import { shouldWarnIntegratedGPU, showIntegratedGPUWarning } from './gpu-warning';
+
 
 export interface WebGPUResources {
   device: GPUDevice;
@@ -95,13 +97,37 @@ export async function initWebGPU(
   }
 
   // 1. Get adapter (physical-ish GPU)
-  const adapter = await (navigator as any).gpu.requestAdapter();
+  const adapter = await (navigator as any).gpu.requestAdapter({
+    powerPreference: 'high-performance',
+  });
   if (!adapter) {
     throw new Error('No GPU adapter found.');
   }
 
+  console.log('adapter:', adapter);
+
+  // Expanded logging for troubleshooting
+  const info = (adapter as any).info;
+  if (info) {
+    console.log('Adapter Info:', {
+      vendor: info.vendor,
+      architecture: info.architecture,
+      device: info.device,
+      description: info.description,
+    });
+  }
+  console.log('Adapter Limits:', adapter.limits);
+
+  // iGPU Warning Check
+  if (shouldWarnIntegratedGPU(adapter)) {
+    console.warn('Integrated GPU detected. Showing warning banner.');
+    showIntegratedGPUWarning(info);
+  }
+
   // 2. Get logical device
   const device = await adapter.requestDevice();
+
+  console.log('device:', device);
 
   device.addEventListener('uncapturederror', (event: Event) => {
     const errorEvent = event as GPUUncapturedErrorEvent;
