@@ -8,7 +8,7 @@ export function shouldWarnIntegratedGPU(adapter: GPUAdapter): boolean {
     return false;
   }
 
-  const info = (adapter as any).info;
+  const info = (adapter as GPUAdapter & { info?: { vendor?: string; description?: string; device?: string; architecture?: string } }).info;
   if (info) {
     const vendor = (info.vendor || '').toLowerCase();
     const description = (info.description || '').toLowerCase();
@@ -54,7 +54,7 @@ export function shouldWarnIntegratedGPU(adapter: GPUAdapter): boolean {
   return false;
 }
 
-export function showIntegratedGPUWarning(adapterInfo: any) {
+export function showIntegratedGPUWarning(adapterInfo: { vendor?: string; description?: string; device?: string; architecture?: string } | undefined) {
   // Create Banner
   const banner = document.createElement('div');
   Object.assign(banner.style, {

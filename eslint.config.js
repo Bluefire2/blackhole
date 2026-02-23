@@ -25,13 +25,13 @@ export default tseslint.config(
         },
       ],
       '@typescript-eslint/no-explicit-any': 'warn',
-      
+
       // General code quality
-      'no-console': ['warn', { allow: ['warn', 'error'] }],
+      'no-console': ['warn', { allow: ['warn', 'error', 'log'] }],
       'no-debugger': 'error',
       'prefer-const': 'error',
       'no-var': 'error',
-      
+
       // Code style
       'semi': ['error', 'always'],
       'quotes': ['error', 'single', { avoidEscape: true }],

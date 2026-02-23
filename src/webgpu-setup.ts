@@ -97,7 +97,7 @@ export async function initWebGPU(
   }
 
   // 1. Get adapter (physical-ish GPU)
-  const adapter = await (navigator as any).gpu.requestAdapter({
+  const adapter = await navigator.gpu.requestAdapter({
     powerPreference: 'high-performance',
   });
   if (!adapter) {
@@ -107,7 +107,7 @@ export async function initWebGPU(
   console.log('adapter:', adapter);
 
   // Expanded logging for troubleshooting
-  const info = (adapter as any).info;
+  const info = (adapter as GPUAdapter & { info?: { vendor?: string; description?: string; device?: string; architecture?: string } }).info;
   if (info) {
     console.log('Adapter Info:', {
       vendor: info.vendor,
@@ -205,7 +205,7 @@ export async function initWebGPU(
   }
 
   // Pick a texture format the browser likes
-  const canvasFormat = (navigator as any).gpu.getPreferredCanvasFormat();
+  const canvasFormat = navigator.gpu.getPreferredCanvasFormat();
   context.configure({
     device,
     format: canvasFormat,
