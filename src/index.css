@@ -470,3 +470,112 @@ body,
   visibility: visible;
   opacity: 1;
 }
+
+/* Mobile Warning Screen */
+#mobile-warning {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  background: radial-gradient(ellipse at center, #0a0a1a 0%, #000 80%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem;
+  opacity: 0;
+  transition: opacity 0.6s ease;
+}
+
+#mobile-warning.visible {
+  opacity: 1;
+}
+
+.mobile-warning-card {
+  max-width: 420px;
+  width: 100%;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.25rem;
+}
+
+.mobile-warning-card .warning-icon {
+  font-size: 3rem;
+  line-height: 1;
+  filter: drop-shadow(0 0 12px rgba(255, 170, 0, 0.6));
+}
+
+.mobile-warning-card h1 {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #fa0;
+  letter-spacing: 1px;
+  text-shadow: 0 0 20px rgba(255, 170, 0, 0.4);
+}
+
+.mobile-warning-card .warning-lead {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  font-size: 0.95rem;
+  line-height: 1.6;
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.mobile-warning-card .warning-lead strong {
+  color: #0ff;
+}
+
+.warning-details {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  width: 100%;
+  background: rgba(255, 170, 0, 0.06);
+  border: 1px solid rgba(255, 170, 0, 0.2);
+  border-radius: 8px;
+  padding: 1rem 1.25rem;
+  text-align: left;
+}
+
+.detail-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  font-size: 0.85rem;
+  line-height: 1.5;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.detail-icon {
+  flex-shrink: 0;
+  font-size: 1.1rem;
+  line-height: 1.3;
+}
+
+.proceed-btn {
+  margin-top: 0.5rem;
+  padding: 0.75rem 2rem;
+  background: transparent;
+  color: #fa0;
+  border: 1px solid rgba(255, 170, 0, 0.5);
+  border-radius: 6px;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  letter-spacing: 0.5px;
+}
+
+.proceed-btn:hover {
+  background: rgba(255, 170, 0, 0.15);
+  border-color: #fa0;
+  box-shadow: 0 0 20px rgba(255, 170, 0, 0.2);
+}
+
+.proceed-btn:active {
+  transform: scale(0.97);
+}

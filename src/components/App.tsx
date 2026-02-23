@@ -3,11 +3,13 @@ import { useState } from 'preact/hooks';
 import { Canvas } from './Canvas';
 import { Controls } from './Controls';
 import { InteractionHint } from './InteractionHint';
+import { MobileWarning, isMobileDevice } from './MobileWarning';
 import { Overlay } from './Overlay';
 import type { OverlayMetrics } from '../renderer';
 import '../index.css';
 
 export function App() {
+    const [mobileAcknowledged, setMobileAcknowledged] = useState(!isMobileDevice());
     const [metric, setMetric] = useState<'Schwarzschild' | 'Kerr'>('Schwarzschild');
     const [spin, setSpin] = useState(0.9);
     const [useRedshift, setUseRedshift] = useState(true);
@@ -17,6 +19,10 @@ export function App() {
     const [showEventHorizon, setShowEventHorizon] = useState(false);
     const [metrics, setMetrics] = useState<OverlayMetrics>({});
     const [error, setError] = useState<string | null>(null);
+
+    if (!mobileAcknowledged) {
+        return <MobileWarning onProceed={() => setMobileAcknowledged(true)} />;
+    }
 
     if (error) {
         return (
@@ -59,3 +65,4 @@ export function App() {
         </>
     );
 }
+
